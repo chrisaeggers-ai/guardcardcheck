@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing | GuardCardCheck — Security License Verification</title>
+<meta name="description" content="Simple, transparent pricing for security guard license verification. Verify guard cards across 10 states. Start free.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0B1F3A;
+  --navy-mid: #142d52;
+  --blue: #1A56DB;
+  --blue-light: #2563EB;
+  --blue-glow: rgba(26,86,219,0.12);
+  --green: #059669;
+  --green-light: #D1FAE5;
+  --green-text: #065F46;
+  --gray-50: #F9FAFB;
+  --gray-100: #F3F4F6;
+  --gray-200: #E5E7EB;
+  --gray-400: #9CA3AF;
+  --gray-600: #4B5563;
+  --gray-800: #1F2937;
+  --white: #FFFFFF;
+  --font: 'Sora', sans-serif;
+  --serif: 'Source Serif 4', Georgia, serif;
+  --radius: 16px;
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  --shadow-blue: 0 8px 32px rgba(26,86,219,0.25);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--gray-50); color: var(--gray-800); }
+
+/* NAV */
+.nav {
+  background: var(--navy);
+  height: 64px;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.nav-logo-icon { width: 32px; height: 32px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; font-weight: 700; }
+.nav-logo-text { font-size: 17px; font-weight: 700; color: white; }
+.nav-logo-text span { color: #60A5FA; }
+.nav-links { display: flex; gap: 8px; align-items: center; }
+.nav-link { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; font-weight: 500; padding: 6px 14px; border-radius: 6px; transition: all 0.15s; }
+.nav-link:hover { color: white; background: rgba(255,255,255,0.08); }
+.nav-cta { background: var(--blue); color: white; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.15s; }
+.nav-cta:hover { background: var(--blue-light); }
+
+/* HERO */
+.hero {
+  background: linear-gradient(160deg, var(--navy) 0%, var(--navy-mid) 100%);
+  padding: 72px 40px 80px;
+  text-align: center;
+}
+.hero-label {
+  display: inline-block;
+  background: rgba(26,86,219,0.2);
+  border: 1px solid rgba(26,86,219,0.4);
+  color: #93C5FD;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+.hero h1 {
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 800;
+  color: white;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  margin-bottom: 16px;
+}
+.hero h1 em { font-style: normal; color: #60A5FA; }
+.hero-sub { font-size: 18px; color: rgba(255,255,255,0.6); max-width: 520px; margin: 0 auto 36px; line-height: 1.6; }
+
+/* BILLING TOGGLE */
+.billing-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 50px;
+  padding: 6px;
+}
+.toggle-btn {
+  padding: 8px 20px;
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  transition: all 0.2s;
+  font-family: var(--font);
+}
+.toggle-btn.active { background: white; color: var(--navy); }
+.save-badge {
+  background: #34D399;
+  color: #064E3B;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.04em;
+}
+
+/* PLANS GRID */
+.plans-section { max-width: 1100px; margin: 0 auto; padding: 64px 32px; }
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.plan-card {
+  background: white;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--gray-200);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+.plan-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.plan-card.popular {
+  border-color: var(--blue);
+  box-shadow: var(--shadow-blue);
+  transform: translateY(-6px);
+}
+.popular-badge {
+  display: none;
+  background: var(--blue);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  padding: 7px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.plan-card.popular .popular-badge { display: block; }
+
+.plan-header { padding: 28px 24px 20px; border-bottom: 1px solid var(--gray-100); }
+.plan-name { font-size: 13px; font-weight: 700; color: var(--gray-400); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+.plan-tagline { font-size: 14px; color: var(--gray-600); margin-bottom: 20px; }
+.plan-price-wrap { margin-bottom: 6px; }
+.plan-price {
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--navy);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.plan-price sup { font-size: 22px; font-weight: 700; vertical-align: super; line-height: 0; }
+.plan-price .period { font-size: 15px; font-weight: 500; color: var(--gray-400); }
+.plan-annual-note { font-size: 12px; color: var(--gray-400); height: 20px; }
+.plan-annual-note.savings { color: var(--green); font-weight: 600; }
+
+.plan-cta {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: all 0.15s;
+  font-family: var(--font);
+}
+.plan-cta.primary { background: var(--blue); color: white; }
+.plan-cta.primary:hover { background: var(--blue-light); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,86,219,0.3); }
+.plan-cta.outline { background: transparent; color: var(--navy); border: 1.5px solid var(--gray-200); }
+.plan-cta.outline:hover { border-color: var(--blue); color: var(--blue); }
+.plan-cta.current { background: var(--green-light); color: var(--green-text); cursor: default; }
+
+.plan-body { padding: 20px 24px 28px; }
+.feature-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gray-400);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  margin-top: 18px;
+}
+.feature-group-label:first-child { margin-top: 0; }
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--gray-700, #374151);
+  line-height: 1.4;
+}
+.feature-icon { flex-shrink: 0; margin-top: 1px; font-size: 14px; }
+.feature-item.muted { color: var(--gray-400); }
+.feature-item.muted .feature-icon { opacity: 0.4; }
+
+/* ADDON CARD */
+.addon-section { max-width: 1100px; margin: 0 auto 64px; padding: 0 32px; }
+.addon-card {
+  background: white;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--gray-200);
+  padding: 32px 40px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+.addon-icon { font-size: 44px; flex-shrink: 0; }
+.addon-text { flex: 1; }
+.addon-name { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+.addon-desc { font-size: 14px; color: var(--gray-600); line-height: 1.6; margin-bottom: 12px; }
+.addon-features { display: flex; flex-wrap: wrap; gap: 8px; }
+.addon-feature {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-600);
+}
+.addon-pricing { text-align: center; flex-shrink: 0; }
+.addon-price { font-size: 36px; font-weight: 800; color: var(--navy); letter-spacing: -1px; }
+.addon-price sup { font-size: 18px; vertical-align: super; line-height: 0; font-weight: 700; }
+.addon-price-note { font-size: 12px; color: var(--gray-400); margin-bottom: 14px; }
+.btn-addon {
+  display: block;
+  padding: 10px 24px;
+  background: var(--navy);
+  color: white;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.15s;
+  font-family: var(--font);
+  cursor: pointer;
+  border: none;
+}
+.btn-addon:hover { background: var(--navy-mid, #142d52); transform: translateY(-1px); }
+
+/* COMPARISON TABLE */
+.compare-section { max-width: 1100px; margin: 0 auto 80px; padding: 0 32px; }
+.compare-title { font-size: 24px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+.compare-sub { font-size: 15px; color: var(--gray-400); margin-bottom: 32px; }
+.compare-table { width: 100%; border-collapse: collapse; background: white; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-md); }
+.compare-table th, .compare-table td {
+  padding: 14px 20px;
+  text-align: left;
+  border-bottom: 1px solid var(--gray-100);
+  font-size: 14px;
+}
+.compare-table th { background: var(--gray-50); font-weight: 700; color: var(--navy); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.compare-table th:first-child { width: 35%; }
+.compare-table td:not(:first-child) { text-align: center; color: var(--gray-600); }
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table .col-popular { background: rgba(26,86,219,0.03); }
+.check { color: var(--green); font-size: 16px; }
+.dash { color: var(--gray-300, #D1D5DB); }
+.highlight-col { font-weight: 600; color: var(--blue); }
+
+/* FAQ */
+.faq-section { max-width: 720px; margin: 0 auto 80px; padding: 0 32px; }
+.faq-title { font-size: 28px; font-weight: 700; color: var(--navy); margin-bottom: 32px; text-align: center; }
+.faq-item { border-bottom: 1px solid var(--gray-200); }
+.faq-q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-800);
+  gap: 12px;
+}
+.faq-q:hover { color: var(--blue); }
+.faq-arrow { font-size: 18px; transition: transform 0.2s; flex-shrink: 0; color: var(--gray-400); }
+.faq-item.open .faq-arrow { transform: rotate(45deg); }
+.faq-a { font-size: 14px; color: var(--gray-600); line-height: 1.7; padding: 0 0 20px; display: none; }
+.faq-item.open .faq-a { display: block; }
+
+/* SOCIAL PROOF */
+.proof-section { background: var(--navy); padding: 64px 40px; text-align: center; }
+.proof-title { font-size: 22px; font-weight: 700; color: white; margin-bottom: 32px; }
+.proof-stats { display: flex; justify-content: center; gap: 64px; flex-wrap: wrap; }
+.proof-stat-num { font-size: 40px; font-weight: 800; color: #60A5FA; letter-spacing: -1px; }
+.proof-stat-label { font-size: 14px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+/* LOADING */
+.loading { opacity: 0.5; pointer-events: none; }
+.btn-loading { position: relative; }
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+@keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+
+/* MOBILE */
+@media (max-width: 900px) {
+  .plans-grid { grid-template-columns: 1fr 1fr; }
+  .plan-card.popular { transform: none; }
+  .addon-card { flex-direction: column; text-align: center; }
+  .addon-features { justify-content: center; }
+}
+@media (max-width: 600px) {
+  .plans-grid { grid-template-columns: 1fr; }
+  .hero { padding: 48px 20px 56px; }
+  .plans-section, .addon-section, .compare-section, .faq-section { padding-left: 20px; padding-right: 20px; }
+  .nav { padding: 0 20px; }
+  .proof-stats { gap: 32px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon">G</div>
+    <div class="nav-logo-text">GuardCard<span>Check</span></div>
+  </a>
+  <div class="nav-links">
+    <a href="/verify" class="nav-link">Verify</a>
+    <a href="/login" class="nav-link">Log In</a>
+    <a href="/register" class="nav-cta">Start Free</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-label">Transparent Pricing · No Hidden Fees</div>
+  <h1>Pay for What You Verify.<br><em>Scale as You Grow.</em></h1>
+  <p class="hero-sub">From solo PPOs verifying a handful of guards to enterprises managing thousands across 10 states. Cancel anytime.</p>
+
+  <div class="billing-toggle">
+    <button class="toggle-btn active" onclick="setBilling('monthly')" id="btn-monthly">Monthly</button>
+    <button class="toggle-btn" onclick="setBilling('annual')" id="btn-annual">
+      Annual <span class="save-badge">Save 2 months</span>
+    </button>
+  </div>
+</section>
+
+<!-- PLANS -->
+<section class="plans-section">
+  <div class="plans-grid">
+
+    <!-- FREE -->
+    <div class="plan-card" id="card-free">
+      <div class="popular-badge">MOST POPULAR</div>
+      <div class="plan-header">
+        <div class="plan-name">Free</div>
+        <div class="plan-tagline">Try it out</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price"><sup>$</sup>0<span class="period">/mo</span></div>
+        </div>
+        <div class="plan-annual-note">&nbsp;</div>
+        <a href="/register" class="plan-cta outline">Start Free</a>
+      </div>
+      <div class="plan-body">
+        <div class="feature-group-label">Searches</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>1 search per day</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>All 10 states</div>
+        <div class="feature-group-label">Features</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>License number lookup</div>
+        <div class="feature-item muted"><span class="feature-icon">✗</span>Name search</div>
+        <div class="feature-item muted"><span class="feature-icon">✗</span>Roster upload</div>
+        <div class="feature-item muted"><span class="feature-icon">✗</span>Expiry alerts</div>
+        <div class="feature-item muted"><span class="feature-icon">✗</span>Export results</div>
+        <div class="feature-item muted"><span class="feature-icon">✗</span>API access</div>
+      </div>
+    </div>
+
+    <!-- STARTER -->
+    <div class="plan-card" id="card-starter">
+      <div class="popular-badge">MOST POPULAR</div>
+      <div class="plan-header">
+        <div class="plan-name">Starter</div>
+        <div class="plan-tagline">For small PPOs</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price" id="price-starter"><sup>$</sup>29<span class="period">/mo</span></div>
+        </div>
+        <div class="plan-annual-note" id="note-starter">Billed monthly</div>
+        <button class="plan-cta primary" onclick="checkout('starter')">Start Starter</button>
+      </div>
+      <div class="plan-body">
+        <div class="feature-group-label">Searches</div>
+        <div class="feature-item"><span class="feature-icon">✓</span><strong>25 searches/month</strong></div>
+        <div class="feature-item"><span class="feature-icon">✓</span>All 10 states</div>
+        <div class="feature-group-label">Features</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>License number lookup</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>Name search</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>Up to 2 users</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>Email expiry alerts</div>
+        <div class="feature-item muted"><span class="feature-icon">✗</span>Roster upload</div>
+        <div class="feature-item muted"><span class="feature-icon">✗</span>Export results</div>
+        <div class="feature-item muted"><span class="feature-icon">✗</span>API access</div>
+      </div>
+    </div>
+
+    <!-- BUSINESS (popular) -->
+    <div class="plan-card popular" id="card-business">
+      <div class="popular-badge">MOST POPULAR</div>
+      <div class="plan-header">
+        <div class="plan-name">Business</div>
+        <div class="plan-tagline">For growing PPOs</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price" id="price-business"><sup>$</sup>79<span class="period">/mo</span></div>
+        </div>
+        <div class="plan-annual-note" id="note-business">Billed monthly</div>
+        <button class="plan-cta primary" onclick="checkout('business')">Start Business</button>
+      </div>
+      <div class="plan-body">
+        <div class="feature-group-label">Searches</div>
+        <div class="feature-item"><span class="feature-icon">✓</span><strong>200 searches/month</strong></div>
+        <div class="feature-item"><span class="feature-icon">✓</span>All 10 states</div>
+        <div class="feature-group-label">Features</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>License + name search</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>Up to 10 users</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>Roster upload (200 guards)</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>Email expiry alerts</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>CSV/Excel export</div>
+        <div class="feature-item muted"><span class="feature-icon">✗</span>API access</div>
+      </div>
+    </div>
+
+    <!-- ENTERPRISE -->
+    <div class="plan-card" id="card-enterprise">
+      <div class="popular-badge">MOST POPULAR</div>
+      <div class="plan-header">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-tagline">For large operators</div>
+        <div class="plan-price-wrap">
+          <div class="plan-price" id="price-enterprise"><sup>$</sup>199<span class="period">/mo</span></div>
+        </div>
+        <div class="plan-annual-note" id="note-enterprise">Billed monthly</div>
+        <button class="plan-cta primary" onclick="checkout('enterprise')">Start Enterprise</button>
+      </div>
+      <div class="plan-body">
+        <div class="feature-group-label">Searches</div>
+        <div class="feature-item"><span class="feature-icon">✓</span><strong>Unlimited searches</strong></div>
+        <div class="feature-item"><span class="feature-icon">✓</span>All 10 states</div>
+        <div class="feature-group-label">Features</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>License + name search</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>Unlimited users</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>Roster upload (5,000 guards)</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>Email + Slack alerts</div>
+        <div class="feature-item"><span class="feature-icon">✓</span>CSV/Excel export</div>
+        <div class="feature-item"><span class="feature-icon">✓</span><strong>REST API access</strong></div>
+        <div class="feature-item"><span class="feature-icon">✓</span>Dedicated support + SLA</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- EVENT PACK ADDON -->
+<section class="addon-section">
+  <div class="addon-card">
+    <div class="addon-icon">🎫</div>
+    <div class="addon-text">
+      <div class="addon-name">Event Pack — One-Time Add-On</div>
+      <div class="addon-desc">Need to verify guards for a single event without a subscription? Purchase an Event Pack and verify up to 500 guards for one occasion. Valid for 30 days. Includes a PDF compliance report.</div>
+      <div class="addon-features">
+        <div class="addon-feature">✓ Up to 500 guards</div>
+        <div class="addon-feature">✓ All 10 states</div>
+        <div class="addon-feature">✓ PDF report</div>
+        <div class="addon-feature">✓ No subscription</div>
+        <div class="addon-feature">✓ Valid 30 days</div>
+      </div>
+    </div>
+    <div class="addon-pricing">
+      <div class="addon-price"><sup>$</sup>49</div>
+      <div class="addon-price-note">one time · per event</div>
+      <button class="btn-addon" onclick="purchaseEventPack()">Buy Event Pack</button>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON TABLE -->
+<section class="compare-section">
+  <div class="compare-title">Full Feature Comparison</div>
+  <div class="compare-sub">Everything you need to know, side by side.</div>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Free</th>
+        <th>Starter</th>
+        <th class="col-popular">Business</th>
+        <th>Enterprise</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Monthly searches</strong></td>
+        <td>1/day</td>
+        <td>25</td>
+        <td class="col-popular highlight-col">200</td>
+        <td>Unlimited</td>
+      </tr>
+      <tr>
+        <td>States covered</td>
+        <td>10</td>
+        <td>10</td>
+        <td class="col-popular">10</td>
+        <td>10</td>
+      </tr>
+      <tr>
+        <td>Team users</td>
+        <td>1</td>
+        <td>2</td>
+        <td class="col-popular">10</td>
+        <td>Unlimited</td>
+      </tr>
+      <tr>
+        <td>License number lookup</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+        <td class="col-popular check">✓</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Name search</td>
+        <td class="dash">—</td>
+        <td class="check">✓</td>
+        <td class="col-popular check">✓</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Roster bulk upload</td>
+        <td class="dash">—</td>
+        <td class="dash">—</td>
+        <td class="col-popular check">✓ up to 200</td>
+        <td class="check">✓ up to 5,000</td>
+      </tr>
+      <tr>
+        <td>Expiry email alerts</td>
+        <td class="dash">—</td>
+        <td class="check">✓</td>
+        <td class="col-popular check">✓</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Slack alerts</td>
+        <td class="dash">—</td>
+        <td class="dash">—</td>
+        <td class="col-popular dash">—</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Export (CSV/Excel)</td>
+        <td class="dash">—</td>
+        <td class="dash">—</td>
+        <td class="col-popular check">✓</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>REST API access</td>
+        <td class="dash">—</td>
+        <td class="dash">—</td>
+        <td class="col-popular dash">—</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Dedicated support + SLA</td>
+        <td class="dash">—</td>
+        <td class="dash">—</td>
+        <td class="col-popular dash">—</td>
+        <td class="check">✓</td>
+      </tr>
+      <tr>
+        <td>Invoice / receipts</td>
+        <td class="dash">—</td>
+        <td class="check">✓</td>
+        <td class="col-popular check">✓</td>
+        <td class="check">✓</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- SOCIAL PROOF -->
+<section class="proof-section">
+  <div class="proof-title">Trusted by PPOs across 10 States</div>
+  <div class="proof-stats">
+    <div>
+      <div class="proof-stat-num">10</div>
+      <div class="proof-stat-label">States Covered</div>
+    </div>
+    <div>
+      <div class="proof-stat-num">Real-time</div>
+      <div class="proof-stat-label">State Database Checks</div>
+    </div>
+    <div>
+      <div class="proof-stat-num">$0</div>
+      <div class="proof-stat-label">To Get Started</div>
+    </div>
+    <div>
+      <div class="proof-stat-num">30s</div>
+      <div class="proof-stat-label">Average Verification Time</div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section" style="margin-top: 64px;">
+  <div class="faq-title">Frequently Asked Questions</div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">
+      <span>What states do you cover?</span>
+      <span class="faq-arrow">+</span>
+    </div>
+    <div class="faq-a">All 10 Day-1 states: <strong>California</strong> (BSIS), <strong>Florida</strong> (FDACS), <strong>Texas</strong> (DPS-PSB), <strong>Illinois</strong> (IDFPR), <strong>Virginia</strong> (DCJS), <strong>Nevada</strong> (PILB), <strong>Oregon</strong> (DPSST), <strong>Washington</strong> (DOL), <strong>Arizona</strong> (DPS), and <strong>North Carolina</strong> (PPSB). Data is pulled in real-time from official state regulatory databases. Additional states are on the roadmap.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">
+      <span>What license types can you verify?</span>
+      <span class="faq-arrow">+</span>
+    </div>
+    <div class="faq-a">We verify all individual guard credentials (Guard Cards, Class D/G licenses, PERC cards, Level II/III/IV commissions, Work Cards, etc.), firearm/armed endorsements, and company/agency licenses (PPO licenses, Class B, etc.). Each state's specific credentials are documented in our state coverage guide.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">
+      <span>How fresh is the data?</span>
+      <span class="faq-arrow">+</span>
+    </div>
+    <div class="faq-a">Individual lookups are real-time — we query the state's portal or API at the time of your search. Roster re-verification (for tracked guards) is refreshed every 24 hours. California uses an official API; other states use their public verification portals.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">
+      <span>Can I cancel anytime?</span>
+      <span class="faq-arrow">+</span>
+    </div>
+    <div class="faq-a">Yes. Cancel anytime from the billing portal — your access continues until the end of your current billing period. No cancellation fees. Annual plans are not refunded for unused months, but you can cancel to prevent renewal.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">
+      <span>What counts as a "search"?</span>
+      <span class="faq-arrow">+</span>
+    </div>
+    <div class="faq-a">Each individual license verification counts as one search. If you upload a roster of 50 guards, that counts as 50 searches. Results are cached for 30 minutes, so re-checking the same license within that window doesn't consume an additional search.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">
+      <span>Do you offer refunds?</span>
+      <span class="faq-arrow">+</span>
+    </div>
+    <div class="faq-a">We offer a 7-day money-back guarantee for new subscriptions. If you're not satisfied in your first 7 days, contact support for a full refund. After 7 days, we do not issue prorated refunds for the current billing period.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">
+      <span>Is there an API for integration into our own system?</span>
+      <span class="faq-arrow">+</span>
+    </div>
+    <div class="faq-a">Yes — the Enterprise plan includes REST API access with API key authentication. See our API docs for full reference. The API supports single-license verification, name search, and batch roster endpoints.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFaq(this)">
+      <span>What payment methods do you accept?</span>
+      <span class="faq-arrow">+</span>
+    </div>
+    <div class="faq-a">We accept all major credit/debit cards (Visa, Mastercard, Amex, Discover) via Stripe. Business and Enterprise customers can also pay by ACH bank transfer or request net-30 invoicing — contact sales.</div>
+  </div>
+
+</section>
+
+<script>
+// ── Billing toggle ──
+let billing = 'monthly';
+
+const prices = {
+  starter:    { monthly: 29,  annual: 24 },   // $290/yr = $24.17/mo
+  business:   { monthly: 79,  annual: 66 },   // $790/yr = $65.83/mo
+  enterprise: { monthly: 199, annual: 166 },  // $1990/yr = $165.83/mo
+};
+
+function setBilling(mode) {
+  billing = mode;
+  document.getElementById('btn-monthly').classList.toggle('active', mode === 'monthly');
+  document.getElementById('btn-annual').classList.toggle('active', mode === 'annual');
+
+  for (const [plan, p] of Object.entries(prices)) {
+    const priceEl = document.getElementById(`price-${plan}`);
+    const noteEl = document.getElementById(`note-${plan}`);
+    if (!priceEl) continue;
+
+    if (mode === 'annual') {
+      priceEl.innerHTML = `<sup>$</sup>${p.annual}<span class="period">/mo</span>`;
+      noteEl.textContent = `$${p.annual * 12}/yr · save $${(p.monthly - p.annual) * 12}/yr`;
+      noteEl.className = 'plan-annual-note savings';
+    } else {
+      priceEl.innerHTML = `<sup>$</sup>${p.monthly}<span class="period">/mo</span>`;
+      noteEl.textContent = 'Billed monthly';
+      noteEl.className = 'plan-annual-note';
+    }
+  }
+}
+
+// ── Checkout ──
+async function checkout(planId) {
+  // Check if logged in
+  const token = localStorage.getItem('gcc_token') || getCookie('token');
+
+  if (!token) {
+    // Not logged in — redirect to register with plan pre-selected
+    sessionStorage.setItem('pending_plan', planId);
+    sessionStorage.setItem('pending_billing', billing);
+    window.location.href = `/register?plan=${planId}&billing=${billing}`;
+    return;
+  }
+
+  const btn = event.currentTarget;
+  const originalText = btn.textContent;
+  btn.classList.add('btn-loading');
+  btn.textContent = 'Loading...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/billing/checkout/' + planId, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+      body: JSON.stringify({ billing }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        // Token expired
+        localStorage.removeItem('gcc_token');
+        sessionStorage.setItem('pending_plan', planId);
+        window.location.href = '/login?redirect=/pricing';
+        return;
+      }
+      throw new Error(data.error || 'Checkout failed');
+    }
+
+    // Redirect to Stripe Checkout
+    window.location.href = data.checkoutUrl;
+
+  } catch (err) {
+    alert('Checkout error: ' + err.message);
+    btn.classList.remove('btn-loading');
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+// ── Event Pack ──
+async function purchaseEventPack() {
+  const eventName = prompt('Enter event name (optional):') ?? '';
+  const token = localStorage.getItem('gcc_token') || getCookie('token');
+
+  if (!token) {
+    sessionStorage.setItem('pending_addon', 'event_pack');
+    window.location.href = '/register?addon=event_pack';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/billing/event-pack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ eventName }),
+    });
+    const data = await res.json();
+    if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+    else throw new Error(data.error);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+// ── FAQ ──
+function toggleFaq(el) {
+  const item = el.closest('.faq-item');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+
+// ── Check if returning from registration with pending plan ──
+(function checkPendingPlan() {
+  const pending = sessionStorage.getItem('pending_plan');
+  if (pending) {
+    const pendingBilling = sessionStorage.getItem('pending_billing') || 'monthly';
+    sessionStorage.removeItem('pending_plan');
+    sessionStorage.removeItem('pending_billing');
+    setBilling(pendingBilling);
+    // Auto-trigger checkout if token now present
+    const token = localStorage.getItem('gcc_token') || getCookie('token');
+    if (token) {
+      setTimeout(() => checkout(pending), 500);
+    }
+  }
+})();
+
+// ── Highlight current plan if logged in ──
+(function highlightCurrentPlan() {
+  const token = localStorage.getItem('gcc_token') || getCookie('token');
+  if (!token) return;
+  fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+    .then(r => r.json())
+    .then(user => {
+      const planId = user.plan || 'free';
+      const btn = document.querySelector(`#card-${planId} .plan-cta`);
+      if (btn) {
+        btn.textContent = '✓ Current Plan';
+        btn.className = 'plan-cta current';
+        btn.onclick = null;
+      }
+    })
+    .catch(() => {});
+})();
+
+// ── Utility ──
+function getCookie(name) {
+  return document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='))?.split('=')[1];
+}
+</script>
+</body>
+</html>

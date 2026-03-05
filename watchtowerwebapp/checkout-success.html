@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to GuardCardCheck!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Sora', sans-serif;
+  background: linear-gradient(160deg, #0B1F3A 0%, #142d52 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+.card {
+  background: white;
+  border-radius: 24px;
+  padding: 56px 48px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+  animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.check-circle {
+  width: 80px;
+  height: 80px;
+  background: #D1FAE5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  margin: 0 auto 24px;
+  animation: popIn 0.4s 0.2s both;
+}
+@keyframes popIn {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0B1F3A;
+  margin-bottom: 10px;
+  letter-spacing: -0.3px;
+}
+.sub {
+  font-size: 15px;
+  color: #6B7280;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+.plan-badge {
+  display: inline-block;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1D4ED8;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 18px;
+  border-radius: 20px;
+  margin-bottom: 32px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.next-steps {
+  text-align: left;
+  background: #F9FAFB;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 28px;
+}
+.next-steps-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9CA3AF;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #374151;
+}
+.step:last-child { margin-bottom: 0; }
+.step-num {
+  width: 24px;
+  height: 24px;
+  background: #1A56DB;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.btn-primary {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: #1A56DB;
+  color: white;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s;
+  margin-bottom: 10px;
+}
+.btn-primary:hover { background: #2563EB; transform: translateY(-1px); }
+.btn-secondary {
+  display: block;
+  padding: 12px;
+  color: #6B7280;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.btn-secondary:hover { color: #1A56DB; }
+.confetti { font-size: 32px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="confetti">🎉</div>
+  <div class="check-circle">✓</div>
+  <h1>You're all set!</h1>
+  <p class="sub">Your payment was successful. Your GuardCardCheck account has been upgraded and is ready to use.</p>
+  <div class="plan-badge" id="plan-label">Loading plan...</div>
+
+  <div class="next-steps">
+    <div class="next-steps-title">Next steps</div>
+    <div class="step"><div class="step-num">1</div><span>Go to your dashboard to start verifying guard licenses</span></div>
+    <div class="step"><div class="step-num">2</div><span>Upload your guard roster to bulk-verify your team</span></div>
+    <div class="step"><div class="step-num">3</div><span>Set up expiry alerts so you're never caught off guard</span></div>
+  </div>
+
+  <a href="/dashboard" class="btn-primary">Go to Dashboard →</a>
+  <a href="/verify" class="btn-secondary">Verify a license now</a>
+</div>
+
+<script>
+// Fetch session details to personalize the page
+(async function() {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get('session_id');
+  const planLabel = document.getElementById('plan-label');
+
+  // Try to get plan info from auth token
+  const token = localStorage.getItem('gcc_token') ||
+    document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('token='))?.split('=')[1];
+
+  if (token) {
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const user = await res.json();
+      if (user.planName) {
+        planLabel.textContent = user.planName + ' Plan Activated';
+        // Show roster step only for Business+
+        if (!['business', 'enterprise'].includes(user.plan)) {
+          document.querySelectorAll('.step')[1].style.display = 'none';
+        }
+      }
+    } catch {}
+  } else {
+    planLabel.textContent = 'Plan Activated';
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GuardCardCheck.com — California Security License Verification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0B1F3A;
+    --blue: #1A56DB;
+    --blue-light: #3B82F6;
+    --blue-pale: #EFF6FF;
+    --sky: #DBEAFE;
+    --green: #059669;
+    --green-light: #D1FAE5;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --gray-50: #F8FAFC;
+    --gray-100: #F1F5F9;
+    --gray-200: #E2E8F0;
+    --gray-400: #94A3B8;
+    --gray-600: #475569;
+    --gray-800: #1E293B;
+    --white: #FFFFFF;
+    --font-body: 'Sora', sans-serif;
+    --font-serif: 'Source Serif 4', serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--gray-800);
+    background: var(--white);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── NAV ─────────────────────────────────────────── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--gray-200);
+    height: 64px;
+    display: flex; align-items: center;
+  }
+  .nav-inner {
+    max-width: 1200px; margin: 0 auto; width: 100%;
+    padding: 0 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none; color: var(--navy);
+  }
+  .logo-badge {
+    width: 36px; height: 36px;
+    background: var(--blue);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(26,86,219,0.30);
+  }
+  .logo-badge svg { width: 20px; height: 20px; }
+  .logo-text {
+    font-size: 15px; font-weight: 700; letter-spacing: -0.3px;
+    line-height: 1.1;
+  }
+  .logo-text span { color: var(--blue); }
+  .nav-links {
+    display: flex; align-items: center; gap: 28px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: 14px; font-weight: 500; color: var(--gray-600);
+    text-decoration: none; transition: color .2s;
+  }
+  .nav-links a:hover { color: var(--navy); }
+  .nav-cta {
+    background: var(--blue); color: var(--white) !important;
+    padding: 8px 18px; border-radius: 7px;
+    font-size: 14px !important; font-weight: 600 !important;
+    transition: background .2s, transform .15s !important;
+  }
+  .nav-cta:hover { background: #1648C0 !important; transform: translateY(-1px); }
+
+  /* ─── HERO ─────────────────────────────────────────── */
+  .hero {
+    padding-top: 120px; padding-bottom: 80px;
+    background: linear-gradient(160deg, var(--gray-50) 0%, var(--blue-pale) 60%, var(--sky) 100%);
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: -120px; right: -160px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: '';
+    position: absolute; bottom: -80px; left: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(26,86,219,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* subtle dot grid */
+  .hero-dots {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(circle, rgba(26,86,219,0.10) 1px, transparent 1px);
+    background-size: 28px 28px;
+    opacity: 0.6;
+  }
+
+  .hero-inner {
+    max-width: 820px; margin: 0 auto; padding: 0 28px;
+    position: relative; z-index: 1; text-align: center;
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--white); border: 1px solid var(--sky);
+    color: var(--blue); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.6px; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 100px;
+    margin-bottom: 28px;
+    box-shadow: 0 1px 6px rgba(26,86,219,0.10);
+    animation: fadeUp 0.6s ease both;
+  }
+  .hero-badge::before {
+    content: ''; width: 6px; height: 6px;
+    background: var(--blue); border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(38px, 5vw, 62px);
+    font-weight: 600; line-height: 1.12;
+    color: var(--navy);
+    letter-spacing: -1px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.7s 0.1s ease both;
+  }
+  h1 em {
+    font-style: italic; color: var(--blue);
+  }
+
+  .hero-sub {
+    font-size: 18px; font-weight: 400; color: var(--gray-600);
+    line-height: 1.65; max-width: 580px; margin: 0 auto 44px;
+    animation: fadeUp 0.7s 0.2s ease both;
+  }
+
+  /* Search widget */
+  .search-widget {
+    background: var(--white);
+    border: 1.5px solid var(--gray-200);
+    border-radius: 16px;
+    padding: 28px 32px;
+    box-shadow: 0 8px 40px rgba(11,31,58,0.10), 0 1px 0 rgba(255,255,255,0.8) inset;
+    max-width: 640px; margin: 0 auto;
+    animation: fadeUp 0.7s 0.3s ease both;
+    position: relative;
+  }
+  .search-label {
+    font-size: 13px; font-weight: 600; color: var(--gray-600);
+    text-align: left; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .search-label .free-tag {
+    background: var(--green-light); color: var(--green);
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px;
+    letter-spacing: 0.4px;
+  }
+  .search-row {
+    display: flex; gap: 10px;
+  }
+  .search-input {
+    flex: 1;
+    padding: 13px 18px;
+    font-family: var(--font-body);
+    font-size: 15px; font-weight: 400;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 10px; outline: none;
+    color: var(--navy);
+    transition: border-color .2s, box-shadow .2s;
+    background: var(--gray-50);
+  }
+  .search-input::placeholder { color: var(--gray-400); }
+  .search-input:focus {
+    border-color: var(--blue-light);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    background: var(--white);
+  }
+  .search-btn {
+    padding: 13px 24px;
+    background: var(--blue); color: var(--white);
+    font-family: var(--font-body); font-size: 14px; font-weight: 700;
+    border: none; border-radius: 10px; cursor: pointer;
+    transition: background .2s, transform .15s, box-shadow .2s;
+    white-space: nowrap;
+    box-shadow: 0 2px 12px rgba(26,86,219,0.30);
+  }
+  .search-btn:hover {
+    background: #1648C0; transform: translateY(-1px);
+    box-shadow: 0 4px 18px rgba(26,86,219,0.38);
+  }
+  .search-btn:active { transform: translateY(0); }
+
+  .search-note {
+    font-size: 12px; color: var(--gray-400); margin-top: 12px; text-align: left;
+  }
+
+  /* Demo result */
+  .demo-result {
+    margin-top: 20px;
+    border: 1.5px solid var(--green);
+    border-radius: 10px;
+    padding: 14px 18px;
+    background: var(--green-light);
+    display: none;
+    text-align: left;
+    animation: fadeUp 0.4s ease both;
+  }
+  .demo-result.show { display: block; }
+  .demo-result.invalid {
+    border-color: var(--red);
+    background: var(--red-light);
+  }
+  .result-status {
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px;
+  }
+  .result-status .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); flex-shrink: 0;
+  }
+  .invalid .result-status .dot { background: var(--red); }
+  .result-status .text { color: var(--green); }
+  .invalid .result-status .text { color: var(--red); }
+  .result-detail { font-size: 13px; color: var(--gray-600); }
+  .result-detail strong { color: var(--gray-800); }
+
+  /* ─── TRUST BAR ─────────────────────────────────────── */
+  .trust-bar {
+    background: var(--navy);
+    padding: 18px 28px;
+  }
+  .trust-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    gap: 48px; flex-wrap: wrap;
+  }
+  .trust-item {
+    display: flex; align-items: center; gap: 10px;
+    color: rgba(255,255,255,0.75); font-size: 13px; font-weight: 500;
+  }
+  .trust-item svg { opacity: 0.85; flex-shrink: 0; }
+
+  /* ─── SECTION BASE ──────────────────────────────────── */
+  section { padding: 80px 28px; }
+  .section-inner { max-width: 1200px; margin: 0 auto; }
+  .section-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.4px;
+    text-transform: uppercase; color: var(--blue);
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-family: var(--font-serif);
+    font-size: clamp(28px, 3.5vw, 42px);
+    font-weight: 600; color: var(--navy);
+    line-height: 1.18; letter-spacing: -0.5px;
+    margin-bottom: 18px;
+  }
+  .section-sub {
+    font-size: 17px; color: var(--gray-600); line-height: 1.65;
+    max-width: 560px;
+  }
+
+  /* ─── HOW IT WORKS ──────────────────────────────────── */
+  #how { background: var(--white); }
+  .how-header { margin-bottom: 60px; }
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 28px;
+  }
+  .step-card {
+    border: 1.5px solid var(--gray-200);
+    border-radius: 16px; padding: 32px 28px;
+    position: relative; overflow: hidden;
+    transition: border-color .25s, box-shadow .25s, transform .25s;
+    background: var(--white);
+  }
+  .step-card:hover {
+    border-color: var(--blue-light);
+    box-shadow: 0 8px 32px rgba(26,86,219,0.10);
+    transform: translateY(-3px);
+  }
+  .step-num {
+    font-family: var(--font-serif);
+    font-size: 56px; font-weight: 300;
+    color: var(--sky); line-height: 1;
+    position: absolute; top: 16px; right: 24px;
+    pointer-events: none; user-select: none;
+  }
+  .step-icon {
+    width: 44px; height: 44px;
+    background: var(--blue-pale); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .step-card h3 {
+    font-size: 17px; font-weight: 700; color: var(--navy);
+    margin-bottom: 10px; line-height: 1.3;
+  }
+  .step-card p {
+    font-size: 14px; color: var(--gray-600); line-height: 1.65;
+  }
+
+  /* ─── FEATURES ──────────────────────────────────────── */
+  #features { background: var(--gray-50); }
+  .features-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px; align-items: center;
+  }
+  .features-list { display: flex; flex-direction: column; gap: 28px; }
+  .feature-item { display: flex; gap: 18px; }
+  .feature-icon {
+    width: 40px; height: 40px; flex-shrink: 0;
+    background: var(--white); border: 1.5px solid var(--gray-200);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    margin-top: 2px;
+  }
+  .feature-item h4 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 5px; }
+  .feature-item p { font-size: 14px; color: var(--gray-600); line-height: 1.6; }
+
+  .features-visual {
+    background: var(--navy);
+    border-radius: 20px; padding: 32px;
+    box-shadow: 0 24px 64px rgba(11,31,58,0.22);
+    position: relative; overflow: hidden;
+  }
+  .features-visual::before {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%);
+  }
+  .dash-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: rgba(255,255,255,0.4);
+    margin-bottom: 20px;
+  }
+  .dash-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .dash-row:last-child { border-bottom: none; }
+  .dash-name { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.85); }
+  .dash-id { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .dash-badge {
+    font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px;
+    letter-spacing: 0.3px;
+  }
+  .dash-badge.valid { background: rgba(5,150,105,0.2); color: #34D399; }
+  .dash-badge.expired { background: rgba(220,38,38,0.2); color: #F87171; }
+  .dash-badge.expires-soon { background: rgba(245,158,11,0.2); color: #FCD34D; }
+  .dash-footer {
+    margin-top: 24px;
+    background: rgba(26,86,219,0.18); border-radius: 10px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .dash-footer-icon {
+    width: 32px; height: 32px; background: var(--blue);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .dash-footer-text { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.4; }
+  .dash-footer-text strong { color: var(--white); display: block; font-size: 13px; }
+
+  /* ─── PRICING ──────────────────────────────────────── */
+  #pricing { background: var(--white); }
+  .pricing-header { text-align: center; margin-bottom: 56px; }
+  .pricing-header .section-sub { margin: 0 auto; }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px; align-items: start;
+  }
+  .plan-card {
+    border: 1.5px solid var(--gray-200);
+    border-radius: 18px; padding: 36px 32px;
+    position: relative; transition: box-shadow .25s, transform .25s;
+    background: var(--white);
+  }
+  .plan-card:hover {
+    box-shadow: 0 12px 40px rgba(11,31,58,0.10);
+    transform: translateY(-4px);
+  }
+  .plan-card.featured {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 4px rgba(26,86,219,0.10), 0 12px 40px rgba(26,86,219,0.14);
+    background: var(--navy);
+    color: var(--white);
+  }
+  .plan-card.featured:hover {
+    box-shadow: 0 0 0 4px rgba(26,86,219,0.15), 0 20px 56px rgba(11,31,58,0.25);
+    transform: translateY(-6px);
+  }
+  .plan-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--blue); color: var(--white);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.6px;
+    padding: 4px 14px; border-radius: 100px; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .plan-name {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.8px;
+    text-transform: uppercase; color: var(--gray-400); margin-bottom: 6px;
+  }
+  .plan-card.featured .plan-name { color: rgba(255,255,255,0.5); }
+  .plan-price {
+    font-family: var(--font-serif);
+    font-size: 48px; font-weight: 600; color: var(--navy);
+    line-height: 1; margin-bottom: 4px;
+  }
+  .plan-card.featured .plan-price { color: var(--white); }
+  .plan-price sup {
+    font-size: 22px; font-weight: 400; vertical-align: super; margin-right: 2px;
+  }
+  .plan-period { font-size: 13px; color: var(--gray-400); margin-bottom: 24px; }
+  .plan-card.featured .plan-period { color: rgba(255,255,255,0.45); }
+  .plan-divider {
+    border: none; border-top: 1px solid var(--gray-200); margin: 0 0 24px;
+  }
+  .plan-card.featured .plan-divider { border-color: rgba(255,255,255,0.1); }
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 13px; margin-bottom: 32px; }
+  .plan-features li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 14px; color: var(--gray-600); line-height: 1.4;
+  }
+  .plan-card.featured .plan-features li { color: rgba(255,255,255,0.75); }
+  .plan-features li .check {
+    width: 18px; height: 18px; flex-shrink: 0;
+    background: var(--green-light); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .plan-card.featured .plan-features li .check {
+    background: rgba(5,150,105,0.25);
+  }
+  .plan-features li .check svg { width: 10px; height: 10px; }
+  .plan-btn {
+    width: 100%; padding: 14px;
+    font-family: var(--font-body); font-size: 14px; font-weight: 700;
+    border-radius: 10px; cursor: pointer; border: 1.5px solid var(--gray-200);
+    background: var(--white); color: var(--navy);
+    transition: all .2s;
+  }
+  .plan-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .plan-btn.primary {
+    background: var(--blue); color: var(--white); border-color: var(--blue);
+    box-shadow: 0 3px 14px rgba(26,86,219,0.30);
+  }
+  .plan-btn.primary:hover { background: #1648C0; box-shadow: 0 5px 20px rgba(26,86,219,0.40); }
+
+  .guards-count {
+    font-size: 12px; color: var(--gray-400);
+    margin-top: 10px; text-align: center;
+  }
+  .plan-card.featured .guards-count { color: rgba(255,255,255,0.35); }
+
+  /* ─── FAQ / BOTTOM CTA ──────────────────────────────── */
+  #cta {
+    background: linear-gradient(135deg, var(--navy) 0%, #102C5A 100%);
+    text-align: center; position: relative; overflow: hidden;
+  }
+  #cta::before {
+    content: '';
+    position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+    width: 700px; height: 400px;
+    background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
+  }
+  #cta .section-inner { position: relative; z-index: 1; }
+  #cta .section-title { color: var(--white); }
+  #cta .section-sub { color: rgba(255,255,255,0.6); margin: 0 auto 40px; }
+  .cta-buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary {
+    padding: 15px 32px;
+    background: var(--blue); color: var(--white);
+    font-family: var(--font-body); font-size: 15px; font-weight: 700;
+    border: none; border-radius: 10px; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(26,86,219,0.40);
+    transition: background .2s, transform .15s;
+    text-decoration: none; display: inline-block;
+  }
+  .btn-primary:hover { background: #1648C0; transform: translateY(-2px); }
+  .btn-ghost {
+    padding: 15px 32px;
+    background: transparent; color: rgba(255,255,255,0.8);
+    font-family: var(--font-body); font-size: 15px; font-weight: 600;
+    border: 1.5px solid rgba(255,255,255,0.22); border-radius: 10px; cursor: pointer;
+    transition: border-color .2s, color .2s;
+    text-decoration: none; display: inline-block;
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.5); color: var(--white); }
+
+  /* ─── FOOTER ─────────────────────────────────────────── */
+  footer {
+    background: var(--gray-800); color: rgba(255,255,255,0.55);
+    padding: 36px 28px;
+  }
+  .footer-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+  }
+  .footer-logo { display: flex; align-items: center; gap: 9px; }
+  .footer-logo .logo-text { color: rgba(255,255,255,0.6); font-size: 13px; }
+  .footer-logo .logo-text span { color: rgba(59,130,246,0.8); }
+  footer p { font-size: 12px; }
+  .footer-links { display: flex; gap: 20px; }
+  .footer-links a { color: rgba(255,255,255,0.4); font-size: 12px; text-decoration: none; }
+  .footer-links a:hover { color: rgba(255,255,255,0.7); }
+
+  /* ─── ANIMATIONS ─────────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── RESPONSIVE ─────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .features-layout { grid-template-columns: 1fr; }
+    .features-visual { order: -1; }
+    .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
+  }
+  @media (max-width: 640px) {
+    .nav-links { display: none; }
+    .steps-grid { grid-template-columns: 1fr; }
+    .search-row { flex-direction: column; }
+    .trust-inner { gap: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── NAV ─────────────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="logo">
+      <div class="logo-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/>
+          <polyline points="9 12 11 14 15 10"/>
+        </svg>
+      </div>
+      <div class="logo-text">GuardCard<span>Check</span>.com</div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/login">Log In</a></li>
+      <li><a href="/register" class="nav-cta">Start Free</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ─── HERO ─────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-dots"></div>
+  <div class="hero-inner">
+    <div class="hero-badge">10-State Guard License Verification · CA · FL · TX · IL · VA · NV · OR · WA · AZ · NC</div>
+    <h1>Verify Guard Cards &amp;<br/><em>Firearm Permits</em> Instantly</h1>
+    <p class="hero-sub">Real-time license status checks against the California BSIS database. Protect your PPO with daily automated monitoring — catch expirations before they become liabilities.</p>
+
+    <div class="search-widget">
+      <div class="search-label">
+        <span>Search by License Number or Name</span>
+        <span class="free-tag">FREE — 1 search/day</span>
+      </div>
+      <div class="search-row">
+        <input class="search-input" type="text" id="licenseInput" placeholder="e.g. Guard Card #123456 or Full Name" />
+        <button class="search-btn" onclick="goVerify()">Verify Now →</button>
+      </div>
+      <p class="search-note">Checks both Guard Card (PPO 14431) and Exposed Firearm Permit (PPO 14432) status in real time.</p>
+      <div class="demo-result" id="demoResult">
+        <div class="result-status">
+          <div class="dot"></div>
+          <div class="text" id="resultStatusText">VALID — Active License</div>
+        </div>
+        <div class="result-detail" id="resultDetail">
+          <strong>John A. Smith</strong> · Guard Card #123456 · Issued: 03/12/2022 · <strong>Expires: 03/12/2026</strong>
+          <br/>Firearm Permit: <strong>Active</strong> · Permit #FE-78901 · Expires: 09/15/2025
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── TRUST BAR ─────────────────────────────────────── -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <div class="trust-item">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      Real-time BSIS database checks
+    </div>
+    <div class="trust-item">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/><polyline points="9 12 11 14 15 10"/>
+      </svg>
+      Guard Cards &amp; Firearm Permits
+    </div>
+    <div class="trust-item">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      Daily automated monitoring at 2AM
+    </div>
+    <div class="trust-item">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      Trusted by CA-licensed PPOs
+    </div>
+  </div>
+</div>
+
+<!-- ─── HOW IT WORKS ──────────────────────────────────── -->
+<section id="how">
+  <div class="section-inner">
+    <div class="how-header">
+      <div class="section-tag">Simple Process</div>
+      <h2 class="section-title">Compliance verification<br/>without the manual work</h2>
+      <p class="section-sub">Most security platforms only check licenses once a month. GuardCardCheck monitors daily — so a revoked card never slips through to a shift.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-icon">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <h3>Upload Your Roster</h3>
+        <p>Import your guard list via Excel or CSV. Map columns in seconds. Supports hundreds of guards in a single file.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-icon">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </div>
+        <h3>We Check Every License</h3>
+        <p>Our system verifies each Guard Card and Firearm Permit against the live BSIS database — both upon upload and every night at 2AM.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-icon">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.49 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.34 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </div>
+        <h3>Get Instant Alerts</h3>
+        <p>If any license expires, is suspended, or gets revoked, you receive an email alert immediately — before your guard hits the floor.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-icon">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        <h3>Export Compliance Reports</h3>
+        <p>Generate audit-ready PDF compliance reports for any date range. Perfect for large events, client contracts, or BSIS audits.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FEATURES ──────────────────────────────────────── -->
+<section id="features">
+  <div class="section-inner">
+    <div class="features-layout">
+      <div>
+        <div class="section-tag">Built for PPOs</div>
+        <h2 class="section-title">The compliance tool your security company actually needs</h2>
+        <p class="section-sub" style="margin-bottom:44px;">Designed around how California PPOs actually operate — bulk events, rotating guards, and zero tolerance for unlicensed personnel.</p>
+        <div class="features-list">
+          <div class="feature-item">
+            <div class="feature-icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+              </svg>
+            </div>
+            <div>
+              <h4>Bulk Excel / CSV Upload</h4>
+              <p>Upload hundreds of guards at once. Perfect for large events where you're deploying 50, 100, or 500+ personnel from a single roster file.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <div>
+              <h4>Daily 2AM Automated Checks</h4>
+              <p>Every license in your roster is re-verified overnight. If anything changed at BSIS — suspension, revocation, expiration — you'll know by morning.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/>
+              </svg>
+            </div>
+            <div>
+              <h4>Instant Email Alerts</h4>
+              <p>Expired, suspended, or revoked? Your designated contacts are alerted the moment a problem is detected — no logging in required.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div>
+              <h4>Multiple Users Per Account</h4>
+              <p>Add your compliance officer, operations manager, and scheduler to the same account. Everyone stays in the loop.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="features-visual">
+        <div class="dash-label">Live Roster — Tonight's Event</div>
+        <div class="dash-row">
+          <div><div class="dash-name">Maria G. Hernandez</div><div class="dash-id">Guard Card #GC-441892 · FP-22310</div></div>
+          <span class="dash-badge valid">✓ Valid</span>
+        </div>
+        <div class="dash-row">
+          <div><div class="dash-name">Darnell R. Thompson</div><div class="dash-id">Guard Card #GC-338017</div></div>
+          <span class="dash-badge valid">✓ Valid</span>
+        </div>
+        <div class="dash-row">
+          <div><div class="dash-name">Kevin T. Nguyen</div><div class="dash-id">Guard Card #GC-509234 · FP-88102</div></div>
+          <span class="dash-badge expires-soon">⚠ Exp. in 9 days</span>
+        </div>
+        <div class="dash-row">
+          <div><div class="dash-name">James A. Okafor</div><div class="dash-id">Guard Card #GC-271640</div></div>
+          <span class="dash-badge expired">✗ Expired</span>
+        </div>
+        <div class="dash-row">
+          <div><div class="dash-name">Sandra L. Ruiz</div><div class="dash-id">Guard Card #GC-184509 · FP-30147</div></div>
+          <span class="dash-badge valid">✓ Valid</span>
+        </div>
+        <div class="dash-footer">
+          <div class="dash-footer-icon">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.49 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.34 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </div>
+          <div class="dash-footer-text">
+            <strong>Alert sent at 2:01 AM</strong>
+            1 expired license detected · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="771d161a120459181c1611180537120112190314185914181a">[email&#160;protected]</a> notified
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PRICING ──────────────────────────────────────── -->
+<section id="pricing">
+  <div class="section-inner">
+    <div class="pricing-header">
+      <div class="section-tag">Simple Pricing</div>
+      <h2 class="section-title">Plans for every operation size</h2>
+      <p class="section-sub">No contracts. Cancel anytime. All paid plans include a 14-day free trial.</p>
+    </div>
+    <div class="pricing-grid">
+
+      <!-- Starter -->
+      <div class="plan-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price"><sup>$</sup>4<span style="font-size:28px">.99</span></div>
+        <div class="plan-period">per month</div>
+        <hr class="plan-divider"/>
+        <ul class="plan-features">
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Up to <strong>25 guards</strong> monitored
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            CSV / Excel bulk upload
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Daily 2AM automated checks
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Email alerts on status changes
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            1 user account
+          </li>
+        </ul>
+        <button class="plan-btn">Start Free Trial</button>
+        <div class="guards-count">Ideal for small teams &amp; solo PPOs</div>
+      </div>
+
+      <!-- Business (featured) -->
+      <div class="plan-card featured">
+        <div class="plan-badge">Most Popular</div>
+        <div class="plan-name">Business</div>
+        <div class="plan-price"><sup>$</sup>19<span style="font-size:28px">.99</span></div>
+        <div class="plan-period">per month</div>
+        <hr class="plan-divider"/>
+        <ul class="plan-features">
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Up to <strong>200 guards</strong> monitored
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            CSV / Excel bulk upload
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Daily 2AM automated checks
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Email alerts on status changes
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Up to <strong>5 user accounts</strong>
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Exportable PDF compliance reports
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            30-day expiration advance warnings
+          </li>
+        </ul>
+        <button class="plan-btn primary">Start Free Trial</button>
+        <div class="guards-count">Best for mid-size PPOs &amp; recurring events</div>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="plan-card">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price"><sup>$</sup>39</div>
+        <div class="plan-period">per month</div>
+        <hr class="plan-divider"/>
+        <ul class="plan-features">
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            <strong>Unlimited guards</strong> monitored
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            CSV / Excel bulk upload
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Daily 2AM automated checks
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Email alerts on status changes
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            <strong>Unlimited user accounts</strong>
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Exportable PDF compliance reports
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            60-day expiration advance warnings
+          </li>
+          <li>
+            <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+            Priority support &amp; API access
+          </li>
+        </ul>
+        <button class="plan-btn">Start Free Trial</button>
+        <div class="guards-count">For large PPOs, stadiums &amp; multi-event ops</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─── BOTTOM CTA ─────────────────────────────────────── -->
+<section id="cta">
+  <div class="section-inner">
+    <div class="section-tag" style="color:rgba(96,165,250,0.8);">Stop Risking It</div>
+    <h2 class="section-title">One expired guard card at a major event<br/>can cost your PPO its license.</h2>
+    <p class="section-sub">Don't rely on monthly checks. GuardCardCheck gives you daily verification, automated alerts, and audit-ready reports — for less than a cup of coffee a day.</p>
+    <div class="cta-buttons">
+      <a href="/register" class="btn-primary">Start Free — No Card Required →</a>
+      <a href="/verify" class="btn-ghost">Search a License for Free</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─────────────────────────────────────────── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <div class="logo-badge" style="width:28px;height:28px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/>
+          <polyline points="9 12 11 14 15 10"/>
+        </svg>
+      </div>
+      <div class="logo-text">GuardCard<span>Check</span>.com</div>
+    </div>
+    <p>© 2026 GuardCardCheck.com · Not affiliated with BSIS or the State of California</p>
+    <div class="footer-links">
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/cdn-cgi/l/email-protection#b3dbd6dfdfdcf3d4c6d2c1d7d0d2c1d7d0dbd6d0d89dd0dcde">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// Homepage hero search → redirect to /verify with pre-filled query
+function goVerify() {
+  const val = document.getElementById('licenseInput').value.trim();
+  if (!val) {
+    document.getElementById('licenseInput').style.borderColor = '#DC2626';
+    document.getElementById('licenseInput').focus();
+    setTimeout(() => { document.getElementById('licenseInput').style.borderColor = ''; }, 1800);
+    return;
+  }
+  window.location.href = '/verify?q=' + encodeURIComponent(val);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('licenseInput');
+  if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') goVerify(); });
+  // If logged in, update nav
+  const token = localStorage.getItem('gcc_token');
+  if (token) {
+    const navCta = document.querySelector('.nav-cta');
+    if (navCta) { navCta.textContent = 'Dashboard'; navCta.href = '/dashboard'; }
+  }
+});
+
+// legacy — not used but kept for compat
+function doSearch() {
+  const val = document.getElementById('licenseInput').value.trim();
+  const result = document.getElementById('demoResult');
+  const statusText = document.getElementById('resultStatusText');
+  const detail = document.getElementById('resultDetail');
+
+  if (!val) {
+    document.getElementById('licenseInput').style.borderColor = '#DC2626';
+    document.getElementById('licenseInput').focus();
+    setTimeout(() => { document.getElementById('licenseInput').style.borderColor = ''; }, 1800);
+    return;
+  }
+
+  result.classList.remove('show', 'invalid');
+
+  // Simulate a brief lookup
+  const btn = document.querySelector('.search-btn');
+  btn.textContent = 'Checking…';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    btn.textContent = 'Verify Now →';
+    btn.disabled = false;
+
+    // Demo: numbers ending in even = valid, odd = expired
+    const lastChar = val.slice(-1);
+    const isExpired = ['1','3','5','7','9','x','z','b'].includes(lastChar.toLowerCase());
+
+    if (isExpired) {
+      result.classList.add('show', 'invalid');
+      statusText.textContent = 'EXPIRED — License No Longer Active';
+      detail.innerHTML = '<strong>' + escapeHtml(val.toUpperCase()) + '</strong> · Guard Card Status: <strong style="color:#DC2626">EXPIRED</strong> · Expiration Date: 11/30/2024<br/>This guard is not authorized to work. <strong>Do not deploy.</strong>';
+    } else {
+      result.classList.add('show');
+      statusText.textContent = 'VALID — Active License';
+      detail.innerHTML = 'Guard Card <strong>' + escapeHtml(val.toUpperCase()) + '</strong> · Status: <strong styl
