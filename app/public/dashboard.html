@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard — GuardCardCheck.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --navy:      #0B1F3A;
+  --navy-mid:  #0F2847;
+  --navy-lite: #162F52;
+  --blue:      #1A56DB;
+  --blue-lt:   #3B82F6;
+  --blue-pale: #EFF6FF;
+  --sky:       #DBEAFE;
+  --green:     #059669;
+  --green-lt:  #D1FAE5;
+  --green-mid: #10B981;
+  --amber:     #D97706;
+  --amber-lt:  #FEF3C7;
+  --red:       #DC2626;
+  --red-lt:    #FEE2E2;
+  --purple:    #7C3AED;
+  --purple-lt: #EDE9FE;
+  --gray-50:   #F8FAFC;
+  --gray-100:  #F1F5F9;
+  --gray-200:  #E2E8F0;
+  --gray-300:  #CBD5E1;
+  --gray-400:  #94A3B8;
+  --gray-500:  #64748B;
+  --gray-600:  #475569;
+  --gray-700:  #334155;
+  --gray-800:  #1E293B;
+  --white:     #FFFFFF;
+  --sidebar-w: 240px;
+  --header-h:  60px;
+  --font:      'Sora', sans-serif;
+  --serif:     'Source Serif 4', serif;
+  --radius:    12px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.10);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.14);
+}
+
+html{font-size:14px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--gray-50);color:var(--gray-800);display:flex;min-height:100vh;overflow-x:hidden}
+
+/* ── SIDEBAR ─────────────────────────────────────── */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--navy);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:50;
+  border-right:1px solid rgba(255,255,255,.06);
+}
+.sidebar-logo{
+  padding:20px 20px 16px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;gap:10px;
+  text-decoration:none;
+}
+.logo-icon{
+  width:34px;height:34px;border-radius:9px;
+  background:var(--blue);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;box-shadow:0 2px 8px rgba(26,86,219,.4);
+}
+.logo-icon svg{width:18px;height:18px}
+.logo-wordmark{font-size:13px;font-weight:700;color:rgba(255,255,255,.9);line-height:1.2;letter-spacing:-.2px}
+.logo-wordmark span{color:#60A5FA}
+
+.sidebar-section-label{
+  font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+  color:rgba(255,255,255,.28);padding:20px 18px 8px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:11px;
+  padding:9px 18px;margin:1px 8px;border-radius:8px;
+  color:rgba(255,255,255,.55);font-size:13px;font-weight:500;
+  cursor:pointer;transition:background .18s,color .18s;
+  user-select:none;position:relative;
+}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
+.nav-item.active{background:rgba(59,130,246,.18);color:#93C5FD}
+.nav-item.active .nav-icon{color:#60A5FA}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.75}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{
+  margin-left:auto;
+  background:var(--red);color:var(--white);
+  font-size:10px;font-weight:700;
+  padding:2px 6px;border-radius:100px;min-width:18px;text-align:center;
+}
+
+.sidebar-footer{
+  margin-top:auto;
+  border-top:1px solid rgba(255,255,255,.07);
+  padding:14px 16px;
+}
+.org-pill{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:8px;
+  background:rgba(255,255,255,.05);
+  cursor:pointer;transition:background .18s;
+}
+.org-pill:hover{background:rgba(255,255,255,.09)}
+.org-avatar{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--blue);display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:white;flex-shrink:0;
+}
+.org-info{flex:1;min-width:0}
+.org-name{font-size:12px;font-weight:600;color:rgba(255,255,255,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.org-plan{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
+.org-chevron{color:rgba(255,255,255,.25);flex-shrink:0}
+
+/* ── MAIN ─────────────────────────────────────────── */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── TOPBAR ───────────────────────────────────────── */
+.topbar{
+  height:var(--header-h);
+  background:var(--white);
+  border-bottom:1px solid var(--gray-200);
+  display:flex;align-items:center;gap:16px;
+  padding:0 28px;
+  position:sticky;top:0;z-index:40;
+}
+.topbar-title{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--navy);letter-spacing:-.3px}
+.topbar-sub{font-size:12px;color:var(--gray-400);margin-top:1px}
+.topbar-spacer{flex:1}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.topbar-search{
+  display:flex;align-items:center;gap:8px;
+  background:var(--gray-50);border:1.5px solid var(--gray-200);
+  border-radius:8px;padding:7px 14px;
+  font-size:13px;color:var(--gray-400);
+  cursor:text;transition:border-color .2s;
+  min-width:200px;
+}
+.topbar-search:hover{border-color:var(--gray-300)}
+.topbar-search input{background:none;border:none;outline:none;font-family:var(--font);font-size:13px;color:var(--gray-700);width:100%}
+.topbar-search input::placeholder{color:var(--gray-400)}
+.icon-btn{
+  width:36px;height:36px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--gray-200);background:var(--white);
+  cursor:pointer;color:var(--gray-500);transition:all .18s;position:relative;
+}
+.icon-btn:hover{border-color:var(--gray-300);background:var(--gray-50);color:var(--gray-700)}
+.notif-dot{
+  position:absolute;top:6px;right:6px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--red);border:2px solid white;
+}
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:8px 16px;border-radius:8px;
+  font-family:var(--font);font-size:13px;font-weight:600;
+  cursor:pointer;border:none;transition:all .18s;white-space:nowrap;
+}
+.btn-primary{background:var(--blue);color:white;box-shadow:0 2px 8px rgba(26,86,219,.28)}
+.btn-primary:hover{background:#1648C0;box-shadow:0 4px 14px rgba(26,86,219,.36);transform:translateY(-1px)}
+.btn-ghost{background:white;color:var(--gray-700);border:1.5px solid var(--gray-200)}
+.btn-ghost:hover{border-color:var(--gray-300);background:var(--gray-50)}
+.btn-danger{background:var(--red);color:white}
+.btn-danger:hover{background:#B91C1C}
+.btn svg{width:14px;height:14px;flex-shrink:0}
+
+/* ── CONTENT ──────────────────────────────────────── */
+.content{padding:28px;flex:1}
+
+/* ── STAT CARDS ───────────────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{
+  background:var(--white);border:1.5px solid var(--gray-200);
+  border-radius:var(--radius);padding:20px 22px;
+  position:relative;overflow:hidden;
+  transition:box-shadow .2s,transform .2s;
+}
+.stat-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  border-radius:var(--radius) var(--radius) 0 0;
+}
+.stat-card.green::before{background:var(--green)}
+.stat-card.red::before{background:var(--red)}
+.stat-card.amber::before{background:var(--amber)}
+.stat-card.blue::before{background:var(--blue)}
+.stat-label{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--gray-400);margin-bottom:12px}
+.stat-num{font-family:var(--serif);font-size:36px;font-weight:600;line-height:1;letter-spacing:-1px;margin-bottom:6px}
+.stat-card.green .stat-num{color:var(--green)}
+.stat-card.red .stat-num{color:var(--red)}
+.stat-card.amber .stat-num{color:var(--amber)}
+.stat-card.blue .stat-num{color:var(--blue)}
+.stat-sub{font-size:12px;color:var(--gray-400)}
+.stat-icon{
+  position:absolute;top:18px;right:18px;
+  width:34px;height:34px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+}
+.stat-card.green .stat-icon{background:var(--green-lt)}
+.stat-card.red .stat-icon{background:var(--red-lt)}
+.stat-card.amber .stat-icon{background:var(--amber-lt)}
+.stat-card.blue .stat-icon{background:var(--blue-pale)}
+.stat-icon svg{width:16px;height:16px}
+.stat-card.green .stat-icon svg{color:var(--green)}
+.stat-card.red .stat-icon svg{color:var(--red)}
+.stat-card.amber .stat-icon svg{color:var(--amber)}
+.stat-card.blue .stat-icon svg{color:var(--blue)}
+
+/* ── PANEL ────────────────────────────────────────── */
+.panel{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden}
+.panel-header{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 22px;border-bottom:1px solid var(--gray-100);
+}
+.panel-title{font-size:14px;font-weight:700;color:var(--navy)}
+.panel-sub{font-size:12px;color:var(--gray-400);margin-top:1px}
+.panel-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* ── FILTER BAR ───────────────────────────────────── */
+.filter-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 22px;border-bottom:1px solid var(--gray-100);
+  background:var(--gray-50);flex-wrap:wrap;
+}
+.filter-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:100px;
+  font-size:12px;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--gray-200);background:white;color:var(--gray-600);
+  transition:all .15s;
+}
+.filter-pill:hover{border-color:var(--blue);color:var(--blue)}
+.filter-pill.active{background:var(--blue);border-color:var(--blue);color:white}
+.filter-pill .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.filter-spacer{margin-left:auto}
+.filter-input{
+  display:flex;align-items:center;gap:7px;
+  background:white;border:1.5px solid var(--gray-200);
+  border-radius:8px;padding:6px 12px;
+}
+.filter-input input{border:none;outline:none;font-family:var(--font);font-size:12px;color:var(--gray-700);width:160px}
+.filter-input input::placeholder{color:var(--gray-400)}
+.filter-input svg{width:13px;height:13px;color:var(--gray-400);flex-shrink:0}
+
+/* ── TABLE ────────────────────────────────────────── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{
+  padding:10px 16px;
+  font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--gray-400);background:var(--gray-50);
+  border-bottom:1px solid var(--gray-200);
+  text-align:left;white-space:nowrap;
+}
+thead th:first-child{padding-left:22px}
+thead th:last-child{padding-right:22px}
+tbody tr{border-bottom:1px solid var(--gray-100);transition:background .15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--blue-pale)}
+tbody td{padding:13px 16px;font-size:13px;color:var(--gray-700);vertical-align:middle}
+tbody td:first-child{padding-left:22px}
+tbody td:last-child{padding-right:22px}
+.guard-name{font-weight:600;color:var(--gray-800)}
+.guard-id{font-size:11px;color:var(--gray-400);margin-top:2px;font-family:monospace;letter-spacing:.3px}
+.license-num{font-family:monospace;font-size:12px;color:var(--gray-600);background:var(--gray-100);padding:2px 7px;border-radius:4px}
+.empty-license{color:var(--gray-300);font-size:12px}
+
+/* Status badges */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:100px;
+  font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap;
+}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.badge-active{background:var(--green-lt);color:var(--green)}
+.badge-active::before{background:var(--green)}
+.badge-expired{background:var(--red-lt);color:var(--red)}
+.badge-expired::before{background:var(--red)}
+.badge-expiring{background:var(--amber-lt);color:var(--amber)}
+.badge-expiring::before{background:var(--amber)}
+.badge-revoked{background:var(--purple-lt);color:var(--purple)}
+.badge-revoked::before{background:var(--purple)}
+.badge-unknown{background:var(--gray-100);color:var(--gray-500)}
+.badge-unknown::before{background:var(--gray-400)}
+
+.expire-date{font-size:12px}
+.expire-date.soon{color:var(--amber);font-weight:600}
+.expire-date.past{color:var(--red);font-weight:600}
+
+.action-menu{display:flex;align-items:center;gap:4px}
+.action-btn{
+  width:28px;height:28px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  border:none;background:transparent;cursor:pointer;
+  color:var(--gray-400);transition:all .15s;
+}
+.action-btn:hover{background:var(--gray-100);color:var(--gray-700)}
+.action-btn.danger:hover{background:var(--red-lt);color:var(--red)}
+.action-btn svg{width:14px;height:14px}
+
+/* ── ALERT LOG ────────────────────────────────────── */
+.alert-item{
+  display:flex;align-items:flex-start;gap:14px;
+  padding:14px 22px;border-bottom:1px solid var(--gray-100);
+  transition:background .15s;
+}
+.alert-item:last-child{border-bottom:none}
+.alert-item:hover{background:var(--gray-50)}
+.alert-dot-wrap{margin-top:3px;flex-shrink:0}
+.alert-dot{width:10px;height:10px;border-radius:50%;border:2px solid}
+.alert-dot.expired{background:var(--red-lt);border-color:var(--red)}
+.alert-dot.expiring{background:var(--amber-lt);border-color:var(--amber)}
+.alert-dot.revoked{background:var(--purple-lt);border-color:var(--purple)}
+.alert-dot.active{background:var(--green-lt);border-color:var(--green)}
+.alert-body{flex:1}
+.alert-title{font-size:13px;font-weight:600;color:var(--gray-800);margin-bottom:3px}
+.alert-title strong{color:var(--red)}
+.alert-title .name{color:var(--navy)}
+.alert-meta{font-size:12px;color:var(--gray-400)}
+.alert-time{font-size:11px;color:var(--gray-300);margin-left:auto;flex-shrink:0;margin-top:3px}
+
+/* ── BOTTOM ROW ───────────────────────────────────── */
+.bottom-grid{display:grid;grid-template-columns:1fr 360px;gap:16px;margin-top:16px}
+
+/* ── UPLOAD ZONE ──────────────────────────────────── */
+.upload-zone{
+  border:2px dashed var(--gray-200);border-radius:12px;
+  padding:36px 24px;text-align:center;
+  background:var(--gray-50);cursor:pointer;
+  transition:all .2s;margin:20px 22px;
+}
+.upload-zone:hover,.upload-zone.drag{
+  border-color:var(--blue-lt);background:var(--blue-pale);
+}
+.upload-icon{
+  width:44px;height:44px;border-radius:12px;
+  background:var(--blue-pale);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 14px;
+}
+.upload-icon svg{width:22px;height:22px;color:var(--blue)}
+.upload-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:5px}
+.upload-sub{font-size:12px;color:var(--gray-400);line-height:1.6}
+.upload-sub span{color:var(--blue);font-weight:600;cursor:pointer}
+.upload-formats{margin-top:12px;display:flex;justify-content:center;gap:8px}
+.upload-fmt{font-size:11px;font-weight:700;color:var(--gray-400);background:var(--gray-100);padding:2px 8px;border-radius:4px}
+
+/* ── MINI CHART ───────────────────────────────────── */
+.compliance-ring{display:flex;align-items:center;justify-content:center;padding:24px 22px;gap:24px}
+.ring-wrap{position:relative;flex-shrink:0}
+.ring-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;
+}
+.ring-pct{font-family:var(--serif);font-size:26px;font-weight:600;color:var(--navy);line-height:1}
+.ring-label{font-size:10px;color:var(--gray-400);margin-top:3px}
+.ring-legend{flex:1}
+.ring-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-100)}
+.ring-row:last-child{border-bottom:none}
+.ring-dot{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gray-600)}
+.ring-dot::before{content:'';width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.ring-dot.g::before{background:var(--green)}
+.ring-dot.a::before{background:var(--amber)}
+.ring-dot.r::before{background:var(--red)}
+.ring-dot.u::before{background:var(--gray-300)}
+.ring-count{font-size:13px;font-weight:700;color:var(--gray-700)}
+
+/* ── MODAL ────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(11,31,58,.6);
+  backdrop-filter:blur(4px);z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+  padding:20px;
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--white);border-radius:16px;
+  width:100%;max-width:520px;
+  box-shadow:0 24px 64px rgba(0,0,0,.20);
+  transform:translateY(12px);transition:transform .25s;
+  overflow:hidden;
+}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px;border-bottom:1px solid var(--gray-100);
+}
+.modal-title{font-size:15px;font-weight:700;color:var(--navy)}
+.modal-close{
+  width:30px;height:30px;border-radius:7px;
+  background:var(--gray-100);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--gray-500);transition:all .15s;
+}
+.modal-close:hover{background:var(--gray-200);color:var(--gray-700)}
+.modal-body{padding:24px}
+.modal-footer{
+  padding:16px 24px;border-top:1px solid var(--gray-100);
+  display:flex;justify-content:flex-end;gap:10px;background:var(--gray-50);
+}
+.form-group{margin-bottom:18px}
+.form-label{font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:6px;display:block}
+.form-input{
+  width:100%;padding:10px 14px;
+  font-family:var(--font);font-size:13px;
+  border:1.5px solid var(--gray-200);border-radius:8px;
+  outline:none;color:var(--gray-800);background:var(--white);
+  transition:border-color .2s,box-shadow .2s;
+}
+.form-input:focus{border-color:var(--blue-lt);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.form-input::placeholder{color:var(--gray-300)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-hint{font-size:11px;color:var(--gray-400);margin-top:5px}
+
+/* ── DETAIL DRAWER ────────────────────────────────── */
+.drawer-overlay{
+  position:fixed;inset:0;background:rgba(11,31,58,.5);
+  backdrop-filter:blur(2px);z-index:150;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:400px;z-index:151;
+  background:var(--white);box-shadow:-12px 0 40px rgba(0,0,0,.12);
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.drawer.open{transform:translateX(0)}
+.drawer-header{
+  padding:20px 24px;border-bottom:1px solid var(--gray-100);
+  display:flex;align-items:flex-start;justify-content:space-between;
+}
+.drawer-body{flex:1;overflow-y:auto;padding:20px 24px}
+.drawer-footer{padding:16px 24px;border-top:1px solid var(--gray-100);display:flex;gap:10px}
+.detail-row{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  padding:11px 0;border-bottom:1px solid var(--gray-100);font-size:13px;
+}
+.detail-row:last-child{border-bottom:none}
+.detail-key{color:var(--gray-400);font-weight:500;flex-shrink:0;width:140px}
+.detail-val{color:var(--gray-800);font-weight:600;text-align:right}
+.section-divider{
+  font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--gray-400);margin:20px 0 12px;
+}
+
+/* ── NOTIFICATION PANEL ───────────────────────────── */
+.notif-panel{
+  position:fixed;top:var(--header-h);right:0;
+  width:360px;background:var(--white);
+  border-left:1px solid var(--gray-200);border-bottom:1px solid var(--gray-200);
+  border-radius:0 0 0 16px;
+  box-shadow:var(--shadow-lg);z-index:60;
+  transform:translateY(-8px);opacity:0;pointer-events:none;
+  transition:all .2s;
+}
+.notif-panel.open{transform:translateY(0);opacity:1;pointer-events:all}
+.notif-header{padding:14px 18px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between}
+.notif-title{font-size:13px;font-weight:700;color:var(--navy)}
+.notif-clear{font-size:11px;color:var(--blue);cursor:pointer;font-weight:600}
+.notif-item{display:flex;gap:12px;padding:12px 18px;border-bottom:1px solid var(--gray-100);transition:background .15s;cursor:pointer}
+.notif-item:hover{background:var(--gray-50)}
+.notif-item:last-child{border-bottom:none}
+.notif-dot2{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.notif-body{flex:1}
+.notif-msg{font-size:12px;color:var(--gray-700);line-height:1.5}
+.notif-msg strong{color:var(--gray-900)}
+.notif-ts{font-size:11px;color:var(--gray-400);margin-top:3px}
+
+/* ── TOAST ────────────────────────────────────────── */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+.toast{
+  background:var(--navy);color:white;
+  padding:12px 18px;border-radius:10px;
+  font-size:13px;font-weight:500;
+  box-shadow:var(--shadow-lg);
+  display:flex;align-items:center;gap:10px;
+  animation:toastIn .3s ease;max-width:320px;
+}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.toast.warn{background:var(--amber)}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── PAGE SECTIONS ────────────────────────────────── */
+.page{display:none}
+.page.active{display:block}
+
+/* ── ANIMATIONS ───────────────────────────────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.animate{animation:fadeUp .4s ease both}
+.animate-1{animation-delay:.05s}
+.animate-2{animation-delay:.10s}
+.animate-3{animation-delay:.15s}
+.animate-4{animation-delay:.20s}
+
+/* ── LAST CHECK BANNER ────────────────────────────── */
+.check-banner{
+  display:flex;align-items:center;gap:12px;
+  background:var(--navy);color:rgba(255,255,255,.8);
+  border-radius:10px;padding:12px 18px;margin-bottom:20px;
+  font-size:13px;
+}
+.check-banner svg{color:#60A5FA;flex-shrink:0}
+.check-banner strong{color:white}
+.check-banner-actions{margin-left:auto;display:flex;gap:8px}
+.banner-btn{
+  padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;
+  cursor:pointer;border:none;transition:all .15s;font-family:var(--font);
+}
+.banner-btn.light{background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
+.banner-btn.light:hover{background:rgba(255,255,255,.2);color:white}
+
+/* ── EMPTY STATE ──────────────────────────────────── */
+.empty-state{text-align:center;padding:48px 24px;color:var(--gray-400)}
+.empty-icon{width:48px;height:48px;border-radius:14px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.empty-icon svg{width:22px;height:22px}
+.empty-title{font-size:14px;font-weight:700;color:var(--gray-600);margin-bottom:6px}
+.empty-sub{font-size:13px;line-height:1.6;max-width:280px;margin:0 auto 20px}
+
+/* ── SETTINGS PAGE ────────────────────────────────── */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.settings-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden}
+.settings-header{padding:16px 20px;border-bottom:1px solid var(--gray-100)}
+.settings-title{font-size:14px;font-weight:700;color:var(--navy)}
+.settings-body{padding:20px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-info{flex:1}
+.toggle-name{font-size:13px;font-weight:600;color:var(--gray-700)}
+.toggle-desc{font-size:11px;color:var(--gray-400);margin-top:2px}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0;margin-left:16px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{
+  position:absolute;inset:0;background:var(--gray-200);border-radius:100px;cursor:pointer;
+  transition:background .2s;
+}
+.toggle-slider::before{
+  content:'';position:absolute;width:16px;height:16px;border-radius:50%;
+  background:white;left:3px;top:3px;transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.toggle input:checked + .toggle-slider{background:var(--blue)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(18px)}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ─────────────────────────────────────── -->
+<aside class="sidebar">
+  <a href="/" class="sidebar-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/>
+        <polyline points="9 12 11 14 15 10"/>
+      </svg>
+    </div>
+    <div class="logo-wordmark">GuardCard<span>Check</span>.com</div>
+  </a>
+
+  <div class="sidebar-section-label">Monitor</div>
+  <div class="nav-item active" onclick="showPage('dashboard',this)">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Overview
+  </div>
+  <div class="nav-item" onclick="showPage('roster',this)">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Guard Roster
+  </div>
+  <div class="nav-item" onclick="showPage('alerts',this)">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    Alert Log
+    <span class="nav-badge">3</span>
+  </div>
+  <div class="nav-item" onclick="showPage('reports',this)">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    Reports
+  </div>
+
+  <div class="sidebar-section-label">Account</div>
+  <div class="nav-item" onclick="showPage('upload',this)">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+    Upload Roster
+  </div>
+  <div class="nav-item" onclick="showPage('settings',this)">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="org-pill">
+      <div class="org-avatar">SC</div>
+      <div class="org-info">
+        <div class="org-name" id="orgName">GuardCardCheck</div>
+        <div class="org-plan" id="orgPlan">Loading...</div>
+      </div>
+      <svg class="org-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div onclick="logout()" style="cursor:pointer;margin-top:8px;padding:8px 12px;border-radius:8px;font-size:12px;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:8px;transition:all 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.6)'" onmouseout="this.style.background='';this.style.color='rgba(255,255,255,0.35)'">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign Out
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN ─────────────────────────────────────────── -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Overview</div>
+      <div class="topbar-sub" id="page-sub">Saturday, Feb 28, 2026 · Last check: 2:01 AM today</div>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-actions">
+      <div class="topbar-search">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#94A3B8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search guards..." id="global-search" oninput="globalSearch(this.value)"/>
+      </div>
+      <div class="icon-btn" onclick="toggleNotif()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-dot"></div>
+      </div>
+      <button class="btn btn-primary" onclick="openUploadModal()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Guard
+      </button>
+    </div>
+  </header>
+
+  <!-- NOTIFICATION PANEL -->
+  <div class="notif-panel" id="notifPanel">
+    <div class="notif-header">
+      <div class="notif-title">Alerts (3 unread)</div>
+      <div class="notif-clear" onclick="clearNotifs()">Mark all read</div>
+    </div>
+    <div class="notif-item">
+      <div class="notif-dot2" style="background:var(--red)"></div>
+      <div class="notif-body">
+        <div class="notif-msg"><strong>James A. Okafor's</strong> Guard Card has <strong>expired</strong>. Do not deploy.</div>
+        <div class="notif-ts">Detected at 2:01 AM · Today</div>
+      </div>
+    </div>
+    <div class="notif-item">
+      <div class="notif-dot2" style="background:var(--amber)"></div>
+      <div class="notif-body">
+        <div class="notif-msg"><strong>Kevin T. Nguyen's</strong> Guard Card expires in <strong>9 days</strong>. Renewal needed.</div>
+        <div class="notif-ts">Detected at 2:01 AM · Today</div>
+      </div>
+    </div>
+    <div class="notif-item">
+      <div class="notif-dot2" style="background:var(--amber)"></div>
+      <div class="notif-body">
+        <div class="notif-msg"><strong>Priya S. Patel's</strong> Firearm Permit expires in <strong>14 days</strong>.</div>
+        <div class="notif-ts">Detected at 2:01 AM · Today</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══════════ OVERVIEW PAGE ══════════ -->
+    <div class="page active" id="page-dashboard">
+      <!-- Check banner -->
+      <div class="check-banner animate">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Nightly check completed at <strong>2:01 AM</strong> · 3 issues found · Next check in <strong>13h 22m</strong></span>
+        <div class="check-banner-actions">
+          <button class="banner-btn light" onclick="runManualCheck()">Run Check Now</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card green animate animate-1">
+          <div class="stat-label">Active Guards</div>
+          <div class="stat-num">143</div>
+          <div class="stat-sub">Valid for deployment</div>
+          <div class="stat-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        </div>
+        <div class="stat-card red animate animate-2">
+          <div class="stat-label">Expired / Revoked</div>
+          <div class="stat-num">1</div>
+          <div class="stat-sub">Immediate action needed</div>
+          <div class="stat-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        </div>
+        <div class="stat-card amber animate animate-3">
+          <div class="stat-label">Expiring Soon</div>
+          <div class="stat-num">3</div>
+          <div class="stat-sub">Within 30 days</div>
+          <div class="stat-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        </div>
+        <div class="stat-card blue animate animate-4">
+          <div class="stat-label">Total Monitored</div>
+          <div class="stat-num">151</div>
+          <div class="stat-sub">Business plan · 200 max</div>
+          <div class="stat-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/></svg></div>
+        </div>
+      </div>
+
+      <!-- Guard table preview -->
+      <div class="panel animate" style="margin-bottom:16px">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Guards Needing Attention</div>
+            <div class="panel-sub">Expired, revoked, or expiring within 30 days</div>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-ghost" onclick="showPage('roster', document.querySelectorAll('.nav-item')[1])">View All Guards →</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Guard</th>
+                <th>Guard Card</th>
+                <th>GC Status</th>
+                <th>Firearm Permit</th>
+                <th>FP Status</th>
+                <th>Expires</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="attention-tbody">
+              <tr>
+                <td><div class="guard-name">James A. Okafor</div><div class="guard-id">Added 01/15/2025</div></td>
+                <td><span class="license-num">GC-271640</span></td>
+                <td><span class="badge badge-expired">Expired</span></td>
+                <td><span class="empty-license">—</span></td>
+                <td><span class="empty-license">—</span></td>
+                <td><span class="expire-date past">Nov 30, 2024</span></td>
+                <td><div class="action-menu"><button class="action-btn" onclick="openDrawer('okafor')" title="View details"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="action-btn danger" title="Remove"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td><div class="guard-name">Kevin T. Nguyen</div><div class="guard-id">Added 03/02/2024</div></td>
+                <td><span class="license-num">GC-509234</span></td>
+                <td><span class="badge badge-expiring">Expiring</span></td>
+                <td><span class="license-num">FE-88102</span></td>
+                <td><span class="badge badge-active">Active</span></td>
+                <td><span class="expire-date soon">Mar 9, 2026</span></td>
+                <td><div class="action-menu"><button class="action-btn" onclick="openDrawer('nguyen')" title="View details"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td><div class="guard-name">Priya S. Patel</div><div class="guard-id">Added 06/10/2024</div></td>
+                <td><span class="license-num">GC-394817</span></td>
+                <td><span class="badge badge-active">Active</span></td>
+                <td><span class="license-num">FE-11238</span></td>
+                <td><span class="badge badge-expiring">Expiring</span></td>
+                <td><span class="expire-date soon">Mar 14, 2026</span></td>
+                <td><div class="action-menu"><button class="action-btn" onclick="openDrawer('patel')" title="View details"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td><div class="guard-name">Terrence B. Washington</div><div class="guard-id">Added 09/01/2024</div></td>
+                <td><span class="license-num">GC-102938</span></td>
+                <td><span class="badge badge-expiring">Expiring</span></td>
+                <td><span class="empty-license">—</span></td>
+                <td><span class="empty-license">—</span></td>
+                <td><span class="expire-date soon">Mar 22, 2026</span></td>
+                <td><div class="action-menu"><button class="action-btn" onclick="openDrawer('washington')" title="View details"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bottom row -->
+      <div class="bottom-grid">
+        <!-- Recent alerts -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Recent Alerts</div>
+              <div class="panel-sub">Last 7 days</div>
+            </div>
+            <div class="panel-actions">
+              <button class="btn btn-ghost" onclick="showPage('alerts', document.querySelectorAll('.nav-item')[2])">View All</button>
+            </div>
+          </div>
+          <div class="alert-item"><div class="alert-dot-wrap"><div class="alert-dot expired"></div></div><div class="alert-body"><div class="alert-title">Guard Card <strong>expired</strong> — <span class="name">James A. Okafor</span></div><div class="alert-meta">GC-271640 · Expired Nov 30, 2024</div></div><div class="alert-time">2:01 AM</div></div>
+          <div class="alert-item"><div class="alert-dot-wrap"><div class="alert-dot expiring"></div></div><div class="alert-body"><div class="alert-title">Guard Card expiring in <strong style="color:var(--amber)">9 days</strong> — <span class="name">Kevin T. Nguyen</span></div><div class="alert-meta">GC-509234 · Expires Mar 9, 2026</div></div><div class="alert-time">2:01 AM</div></div>
+          <div class="alert-item"><div class="alert-dot-wrap"><div class="alert-dot expiring"></div></div><div class="alert-body"><div class="alert-title">Firearm Permit expiring in <strong style="color:var(--amber)">14 days</strong> — <span class="name">Priya S. Patel</span></div><div class="alert-meta">FE-11238 · Expires Mar 14, 2026</div></div><div class="alert-time">2:01 AM</div></div>
+          <div class="alert-item"><div class="alert-dot-wrap"><div class="alert-dot active"></div></div><div class="alert-body"><div class="alert-title">License <strong style="color:var(--green)">reactivated</strong> — <span class="name">Sandra L. Ruiz</span></div><div class="alert-meta">GC-184509 · Now active through Sep 2027</div></div><div class="alert-time">Feb 26</div></div>
+        </div>
+
+        <!-- Compliance ring -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Compliance Rate</div>
+          </div>
+          <div class="compliance-ring">
+            <div class="ring-wrap">
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#F1F5F9" stroke-width="14"/>
+                <!-- active: 143/151 = 94.7% → stroke-dasharray -->
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#059669" stroke-width="14"
+                  stroke-dasharray="297 17" stroke-dashoffset="79" stroke-linecap="round"/>
+                <!-- expiring: 3/151 -->
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#D97706" stroke-width="14"
+                  stroke-dasharray="9 305" stroke-dashoffset="-218" stroke-linecap="round"/>
+                <!-- expired: 1/151 -->
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#DC2626" stroke-width="14"
+                  stroke-dasharray="3 311" stroke-dashoffset="-227" stroke-linecap="round"/>
+              </svg>
+              <div class="ring-center">
+                <div class="ring-pct">94.7%</div>
+                <div class="ring-label">compliant</div>
+              </div>
+            </div>
+            <div class="ring-legend">
+              <div class="ring-row"><div class="ring-dot g">Active</div><div class="ring-count">143</div></div>
+              <div class="ring-row"><div class="ring-dot a">Expiring</div><div class="ring-count">3</div></div>
+              <div class="ring-row"><div class="ring-dot r">Expired/Revoked</div><div class="ring-count">1</div></div>
+              <div class="ring-row"><div class="ring-dot u">Unknown</div><div class="ring-count">4</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ ROSTER PAGE ══════════ -->
+    <div class="page" id="page-roster">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Full Guard Roster</div>
+            <div class="panel-sub">151 guards · Last verified 2:01 AM today</div>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-ghost" onclick="exportCSV()">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export PDF
+            </button>
+            <button class="btn btn-primary" onclick="openUploadModal()">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+              Upload Roster
+            </button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-pill active" onclick="filterRoster('all',this)"><span>All Guards</span></div>
+          <div class="filter-pill" onclick="filterRoster('active',this)"><span class="dot" style="background:var(--green)"></span>Active</div>
+          <div class="filter-pill" onclick="filterRoster('expiring',this)"><span class="dot" style="background:var(--amber)"></span>Expiring</div>
+          <div class="filter-pill" onclick="filterRoster('expired',this)"><span class="dot" style="background:var(--red)"></span>Expired</div>
+          <div class="filter-pill" onclick="filterRoster('armed',this)">🔫 Armed</div>
+          <div class="filter-spacer"></div>
+          <div class="filter-input">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search roster..." oninput="filterBySearch(this.value)"/>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" style="cursor:pointer" onchange="selectAll(this)"/></th>
+                <th>Guard Name</th>
+                <th>Guard Card #</th>
+                <th>GC Status</th>
+                <th>Firearm Permit #</th>
+                <th>FP Status</th>
+                <th>GC Expires</th>
+                <th>Last Verified</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="roster-tbody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ ALERTS PAGE ══════════ -->
+    <div class="page" id="page-alerts">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Alert Log</div>
+            <div class="panel-sub">All detected license status changes</div>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-ghost" onclick="exportCSV()">Export CSV</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-pill active" onclick="filterAlerts('all',this)">All Alerts</div>
+          <div class="filter-pill" onclick="filterAlerts('expired',this)"><span class="dot" style="background:var(--red)"></span>Expired</div>
+          <div class="filter-pill" onclick="filterAlerts('expiring',this)"><span class="dot" style="background:var(--amber)"></span>Expiring</div>
+          <div class="filter-pill" onclick="filterAlerts('revoked',this)"><span class="dot" style="background:var(--purple)"></span>Revoked</div>
+          <div class="filter-pill" onclick="filterAlerts('active',this)"><span class="dot" style="background:var(--green)"></span>Reactivated</div>
+        </div>
+        <div id="alerts-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ REPORTS PAGE ══════════ -->
+    <div class="page" id="page-reports">
+      <div class="panel" style="max-width:600px">
+        <div class="panel-header"><div class="panel-title">Generate Compliance Report</div></div>
+        <div style="padding:24px">
+          <div class="form-group">
+            <label class="form-label">Report Type</label>
+            <select class="form-input">
+              <option>Full Roster Compliance Report</option>
+              <option>Expired / Revoked Guards Only</option>
+              <option>Event Deployment Report</option>
+              <option>30-Day Expiration Forecast</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">From Date</label>
+              <input type="date" class="form-input" value="2026-02-01"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">To Date</label>
+              <input type="date" class="form-input" value="2026-02-28"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Format</label>
+            <select class="form-input">
+              <option>PDF (Audit-Ready)</option>
+              <option>Excel (.xlsx)</option>
+              <option>CSV</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="showToast('PDF report generated and downloading...','success')">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Generate Report
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ UPLOAD PAGE ══════════ -->
+    <div class="page" id="page-upload">
+      <div style="max-width:640px">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Upload Guard Roster</div></div>
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+            ondragover="this.classList.add('drag');event.preventDefault()"
+            ondragleave="this.classList.remove('drag')"
+            ondrop="handleDrop(event)">
+            <div class="upload-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg></div>
+            <div class="upload-title">Drop your roster file here</div>
+            <div class="upload-sub">or <span>browse to upload</span> — we'll map your columns automatically</div>
+            <div class="upload-formats"><span class="upload-fmt">XLSX</span><span class="upload-fmt">XLS</span><span class="upload-fmt">CSV</span></div>
+            <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileSelect(this)"/>
+          </div>
+          <div style="padding:0 22px 22px">
+            <div style="font-size:12px;font-weight:700;color:var(--gray-500);margin-bottom:10px">EXPECTED COLUMNS</div>
+            <div style="background:var(--gray-50);border-radius:8px;padding:14px 16px;font-size:12px;color:var(--gray-600);line-height:2;font-family:monospace;border:1px solid var(--gray-200)">
+              Full Name &nbsp;|&nbsp; Guard Card Number &nbsp;|&nbsp; Firearm Permit Number (optional)<br/>
+              <span style="color:var(--gray-400)">— Column names are flexible, we detect them automatically —</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ SETTINGS PAGE ══════════ -->
+    <div class="page" id="page-settings">
+      <div class="settings-grid">
+        <div class="settings-card">
+          <div class="settings-header"><div class="settings-title">Alert Preferences</div></div>
+          <div class="settings-body">
+            <div class="toggle-row">
+              <div class="toggle-info"><div class="toggle-name">Nightly email report</div><div class="toggle-desc">Receive summary at 2AM if issues found</div></div>
+              <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info"><div class="toggle-name">Expiring soon warnings</div><div class="toggle-desc">Alert 30 days before expiration</div></div>
+              <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info"><div class="toggle-name">Status change alerts</div><div class="toggle-desc">Instant alert when a license changes</div></div>
+              <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info"><div class="toggle-name">Reactivation notices</div><div class="toggle-desc">Alert when an expired license is renewed</div></div>
+              <label class="toggle"><input type="checkbox"/><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+        <div class="settings-card">
+          <div class="settings-header"><div class="settings-title">Organization</div></div>
+          <div class="settings-body">
+            <div class="form-group"><label class="form-label">Organization Name</label><input class="form-input" value="SoCal Security Inc."/></div>
+            <div class="form-group"><label class="form-label">PPO License Number</label><input class="form-input" value="PPO-18842"/></div>
+            <div class="form-group"><label class="form-label">Alert Email Recipients</label><input class="form-input" value="ops@socalsecurity.com, admin@socalsecurity.com"/><div class="form-hint">Comma-separated. All receive nightly alerts.</div></div>
+            <button class="btn btn-primary" onclick="showToast('Settings saved','success')">Save Changes</button>
+          </div>
+        </div>
+        <div class="settings-card">
+          <div class="settings-header"><div class="settings-title">Plan & Billing</div></div>
+          <div class="settings-body">
+            <div style="background:var(--blue-pale);border-radius:10px;padding:16px 18px;margin-bottom:18px">
+              <div style="font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Current Plan</div>
+              <div style="font-family:var(--serif);font-size:24px;font-weight:600;color:var(--navy)" id="billingPlanName">Loading...</div>
+              <div style="font-size:13px;color:var(--gray-500);margin-top:2px" id="billingDetail">Loading...</div>
+            </div>
+            <div style="font-size:13px;color:var(--gray-600);line-height:1.8;margin-bottom:18px" id="billingFeatures"></div>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="manageBilling()">Manage Billing</button>
+          </div>
+        </div>
+        <div class="settings-card">
+          <div class="settings-header"><div class="settings-title">Team Members</div></div>
+          <div class="settings-body">
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--gray-50);border-radius:8px">
+                <div style="width:32px;height:32px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0">MC</div>
+                <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--gray-800)">Marcus Chen</div><div style="font-size:11px;color:var(--gray-400)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4b243b380b3824282a27382e283e39223f3265282426">[email&#160;protected]</a> · Owner</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--gray-50);border-radius:8px">
+                <div style="width:32px;height:32px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0">LR</div>
+                <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--gray-800)">Lorena Reyes</div><div style="font-size:11px;color:var(--gray-400)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a9c5c6dbccc7c8e9dac6cac8c5dacccadcdbc0ddd087cac6c4">[email&#160;protected]</a> · Admin</div></div>
+              </div>
+            </div>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="showToast('Invite sent!','success')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Invite Team Member
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ── ADD GUARD MODAL ─────────────────────────────── -->
+<div class="modal-overlay" id="addModal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Guard</div>
+      <button class="modal-close" onclick="closeUploadModal()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">First Name *</label><input class="form-input" placeholder="Maria"/></div>
+        <div class="form-group"><label class="form-label">Last Name *</label><input class="form-input" placeholder="Hernandez"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Guard Card Number *</label><input class="form-input" placeholder="e.g. GC-441892"/></div>
+      <div class="form-group"><label class="form-label">Firearm Permit Number <span style="color:var(--gray-400);font-weight:400">(if armed)</span></label><input class="form-input" placeholder="e.g. FE-22310"/></div>
+      <div class="form-group"><label class="form-label">Notes</label><input class="form-input" placeholder="Event assignment, notes..."/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeUploadModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addGuardSubmit()">Add & Verify License</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── GUARD DETAIL DRAWER ─────────────────────────── -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="guardDrawer">
+  <div class="drawer-header">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:var(--navy)" id="drawer-name">James A. Okafor</div>
+      <div style="font-size:12px;color:var(--gray-400);margin-top:3px">Guard · Added Jan 15, 2025</div>
+    </div>
+    <button class="modal-close" onclick="closeDrawer()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="drawer-body" id="drawer-body">
+    <!-- Populated by JS -->
+  </div>
+  <div class="drawer-footer">
+    <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeDrawer()">Close</button>
+    <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="verifyNow()">Verify Now</button>
+  </div>
+</div>
+
+<!-- ── TOAST CONTAINER ─────────────────────────────── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── DATA ────────────────────────────────────────────
+const GUARDS = [
+  {id:'okafor',    name:'James A. Okafor',         gc:'GC-271640', gcStatus:'expired',  gcExp:'Nov 30, 2024', fp:null,        fpStatus:null,      fpExp:null,           armed:false, added:'Jan 15, 2025', verified:'2:01 AM today'},
+  {id:'nguyen',    name:'Kevin T. Nguyen',          gc:'GC-509234', gcStatus:'expiring', gcExp:'Mar 9, 2026',  fp:'FE-88102',  fpStatus:'active',   fpExp:'Oct 12, 2027', armed:true,  added:'Mar 2, 2024',  verified:'2:01 AM today'},
+  {id:'patel',     name:'Priya S. Patel',           gc:'GC-394817', gcStatus:'active',   gcExp:'Jul 3, 2027',  fp:'FE-11238',  fpStatus:'expiring', fpExp:'Mar 14, 2026', armed:true,  added:'Jun 10, 2024', verified:'2:01 AM today'},
+  {id:'washington',name:'Terrence B. Washington',   gc:'GC-102938', gcStatus:'expiring', gcExp:'Mar 22, 2026', fp:null,        fpStatus:null,       fpExp:null,           armed:false, added:'Sep 1, 2024',  verified:'2:01 AM today'},
+  {id:'hernandez', name:'Maria G. Hernandez',       gc:'GC-441892', gcStatus:'active',   gcExp:'May 18, 2027', fp:'FE-22310',  fpStatus:'active',   fpExp:'Dec 1, 2026',  armed:true,  added:'Feb 20, 2024', verified:'2:01 AM today'},
+  {id:'thompson',  name:'Darnell R. Thompson',      gc:'GC-338017', gcStatus:'active',   gcExp:'Aug 15, 2026', fp:null,        fpStatus:null,       fpExp:null,           armed:false, added:'Apr 11, 2024', verified:'2:01 AM today'},
+  {id:'ruiz',      name:'Sandra L. Ruiz',           gc:'GC-184509', gcStatus:'active',   gcExp:'Sep 22, 2027', fp:'FE-30147',  fpStatus:'active',   fpExp:'Sep 22, 2027', armed:true,  added:'Jan 5, 2024',  verified:'2:01 AM today'},
+  {id:'kim',       name:'Jin-Ho Kim',               gc:'GC-773820', gcStatus:'active',   gcExp:'Nov 7, 2026',  fp:null,        fpStatus:null,       fpExp:null,           armed:false, added:'Jul 19, 2024', verified:'2:01 AM today'},
+  {id:'morales',   name:'Eduardo C. Morales',       gc:'GC-556291', gcStatus:'active',   gcExp:'Jun 30, 2027', fp:'FE-45620',  fpStatus:'active',   fpExp:'Jun 30, 2027', armed:true,  added:'Mar 3, 2025',  verified:'2:01 AM today'},
+  {id:'johnson',   name:'Alexis M. Johnson',        gc:'GC-881047', gcStatus:'active',   gcExp:'Feb 14, 2027', fp:null,        fpStatus:null,       fpExp:null,           armed:false, added:'Oct 8, 2024',  verified:'2:01 AM today'},
+];
+
+const ALERTS = [
+  {type:'expired',   name:'James A. Okafor',      license:'Guard Card GC-271640',           detail:'Expired Nov 30, 2024',          time:'2:01 AM · Today'},
+  {type:'expiring',  name:'Kevin T. Nguyen',       license:'Guard Card GC-509234',           detail:'Expires Mar 9, 2026 (9 days)',   time:'2:01 AM · Today'},
+  {type:'expiring',  name:'Priya S. Patel',        license:'Firearm Permit FE-11238',        detail:'Expires Mar 14, 2026 (14 days)',  time:'2:01 AM · Today'},
+  {type:'expiring',  name:'Terrence B. Washington',license:'Guard Card GC-102938',           detail:'Expires Mar 22, 2026 (22 days)', time:'2:01 AM · Today'},
+  {type:'active',    name:'Sandra L. Ruiz',        license:'Guard Card GC-184509',           detail:'Renewed — now active through Sep 2027', time:'Feb 26'},
+  {type:'revoked',   name:'Marcus Webb',           license:'Guard Card GC-009182',           detail:'BSIS revoked license',          time:'Feb 22'},
+  {type:'expired',   name:'Deidre A. Fontenot',    license:'Firearm Permit FE-30091',        detail:'Expired Feb 15, 2026',          time:'Feb 15'},
+  {type:'active',    name:'Jin-Ho Kim',            license:'Guard Card GC-773820',           detail:'License renewal confirmed',     time:'Feb 10'},
+];
+
+const DRAWER_DATA = {
+  okafor:     {name:'James A. Okafor',        status:'expired',  gcNum:'GC-271640', gcStatus:'expired',  gcExp:'Nov 30, 2024', fp:null,       fpStatus:null,      fpExp:null,         notes:'Night shift — LAX contract'},
+  nguyen:     {name:'Kevin T. Nguyen',         status:'expiring', gcNum:'GC-509234', gcStatus:'expiring', gcExp:'Mar 9, 2026',  fp:'FE-88102', fpStatus:'active',  fpExp:'Oct 12, 2027', notes:'Armed post — Convention Center'},
+  patel:      {name:'Priya S. Patel',          status:'active',   gcNum:'GC-394817', gcStatus:'active',   gcExp:'Jul 3, 2027',  fp:'FE-11238', fpStatus:'expiring',fpExp:'Mar 14, 2026', notes:'Supervisor — Downtown venue'},
+  washington: {name:'Terrence B. Washington',  status:'expiring', gcNum:'GC-102938', gcStatus:'expiring', gcExp:'Mar 22, 2026', fp:null,       fpStatus:null,      fpExp:null,         notes:''},
+};
+
+let currentFilter = 'all';
+let currentAlertFilter = 'all';
+let searchTerm = '';
+
+// ── RENDER ROSTER ────────────────────────────────────
+function renderRoster(guards) {
+  const tbody = document.getElementById('roster-tbody');
+  if (!guards.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="#94A3B8" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="empty-title">No guards found</div><div class="empty-sub">Try adjusting your filters or upload a roster.</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = guards.map(g => `
+    <tr>
+      <td><input type="checkbox" style="cursor:pointer"/></td>
+      <td><div class="guard-name">${g.name}</div><div class="guard-id">Added ${g.added}</div></td>
+      <td><span class="license-num">${g.gc}</span></td>
+      <td><span class="badge badge-${g.gcStatus}">${capFirst(g.gcStatus)}</span></td>
+      <td>${g.fp ? `<span class="license-num">${g.fp}</span>` : `<span class="empty-license">—</span>`}</td>
+      <td>${g.fpStatus ? `<span class="badge badge-${g.fpStatus}">${capFirst(g.fpStatus)}</span>` : `<span class="empty-license">—</span>`}</td>
+      <td><span class="expire-date ${g.gcStatus === 'expiring' ? 'soon' : g.gcStatus === 'expired' ? 'past' : ''}">${g.gcExp}</span></td>
+      <td style="font-size:12px;color:var(--gray-400)">${g.verified}</td>
+      <td><div class="action-menu">
+        <button class="action-btn" onclick="openDrawer('${g.id}')" title="View"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="action-btn danger" title="Remove" onclick="showToast('Guard removed from roster','')"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+      </div></td>
+    </tr>
+  `).join('');
+}
+
+// ── RENDER ALERTS ────────────────────────────────────
+function renderAlerts(alerts) {
+  const el = document.getElementById('alerts-list');
+  if (!alerts.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="#94A3B8" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><div class="empty-title">No alerts</div><div class="empty-sub">No alerts matching this filter.</div></div>`;
+    return;
+  }
+  el.innerHTML = alerts.map(a => {
+    const colors = {expired:'var(--red)',expiring:'var(--amber)',revoked:'var(--purple)',active:'var(--green)'};
+    return `<div class="alert-item">
+      <div class="alert-dot-wrap"><div class="alert-dot ${a.type}"></div></div>
+      <div class="alert-body">
+        <div class="alert-title">${alertTitle(a)}</div>
+        <div class="alert-meta">${a.license} · ${a.detail}</div>
+      </div>
+      <div class="alert-time">${a.time}</div>
+    </div>`;
+  }).join('');
+}
+
+function alertTitle(a) {
+  if (a.type === 'expired')  return `License <strong style="color:var(--red)">expired</strong> — <span class="name">${a.name}</span>`;
+  if (a.type === 'expiring') return `License <strong style="color:var(--amber)">expiring soon</strong> — <span class="name">${a.name}</span>`;
+  if (a.type === 'revoked')  return `License <strong style="color:var(--purple)">revoked by BSIS</strong> — <span class="name">${a.name}</span>`;
+  if (a.type === 'active')   return `License <strong style="color:var(--green)">reactivated</strong> — <span class="name">${a.name}</span>`;
+}
+
+// ── NAV ──────────────────────────────────────────────
+function showPage(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (el) el.classList.add('active');
+  const titles = {dashboard:'Overview',roster:'Guard Roster',alerts:'Alert Log',reports:'Compliance Reports',upload:'Upload Roster',settings:'Settings'};
+  document.getElementById('page-title').textContent = titles[page] || page;
+  if (page === 'roster') renderRoster(GUARDS);
+  if (page === 'alerts') renderAlerts(ALERTS);
+  closeNotif();
+}
+
+// ── FILTERS ──────────────────────────────────────────
+function filterRoster(filter, el) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  applyRosterFilters();
+}
+function filterBySearch(val) {
+  searchTerm = val.toLowerCase();
+  applyRosterFilters();
+}
+function applyRosterFilters() {
+  let filtered = GUARDS;
+  if (currentFilter === 'active')   filtered = filtered.filter(g => g.gcStatus === 'active' && g.fpStatus !== 'expiring');
+  if (currentFilter === 'expiring') filtered = filtered.filter(g => g.gcStatus === 'expiring' || g.fpStatus === 'expiring');
+  if (currentFilter === 'expired')  filtered = filtered.filter(g => g.gcStatus === 'expired'  || g.fpStatus === 'expired');
+  if (currentFilter === 'armed')    filtered = filtered.filter(g => g.armed);
+  if (searchTerm) filtered = filtered.filter(g => g.name.toLowerCase().includes(searchTerm) || g.gc.toLowerCase().includes(searchTerm));
+  renderRoster(filtered);
+}
+function globalSearch(val) {
+  if (val.length > 1) {
+    showPage('roster', document.querySelectorAll('.nav-item')[1]);
+    searchTerm = val.toLowerCase();
+    applyRosterFilters();
+  }
+}
+function filterAlerts(filter, el) {
+  currentAlertFilter = filter;
+  document.querySelectorAll('#page-alerts .filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  const filtered = filter === 'all' ? ALERTS : ALERTS.filter(a => a.type === filter);
+  renderAlerts(filtered);
+}
+
+// ── DRAWER ────────────────────────────────────────────
+function openDrawer(id) {
+  const d = DRAWER_DATA[id];
+  if (!d) return;
+  document.getElementById('drawer-name').textContent = d.name;
+  const statusColor = {active:'var(--green)',expired:'var(--red)',expiring:'var(--amber)',revoked:'var(--purple)'}[d.gcStatus] || 'var(--gray-400)';
+  document.getElementById('drawer-body').innerHTML = `
+    <div class="section-divider">Guard Card</div>
+    <div class="detail-row"><div class="detail-key">License Number</div><div class="detail-val" style="font-family:monospace">${d.gcNum}</div></div>
+    <div class="detail-row"><div class="detail-key">Status</div><div class="detail-val"><span class="badge badge-${d.gcStatus}">${capFirst(d.gcStatus)}</span></div></div>
+    <div class="detail-row"><div class="detail-key">Expiration Date</div><div class="detail-val" style="color:${statusColor}">${d.gcExp || '—'}</div></div>
+    ${d.fp ? `
+    <div class="section-divider">Firearm Permit</div>
+    <div class="detail-row"><div class="detail-key">Permit Number</div><div class="detail-val" style="font-family:monospace">${d.fp}</div></div>
+    <div class="detail-row"><div class="detail-key">Status</div><div class="detail-val"><span class="badge badge-${d.fpStatus}">${capFirst(d.fpStatus)}</span></div></div>
+    <div class="detail-row"><div class="detail-key">Expiration Date</div><div class="detail-val">${d.fpExp || '—'}</div></div>
+    ` : ''}
+    <div class="section-divider">Monitoring</div>
+    <div class="detail-row"><div class="detail-key">Last Verified</div><div class="detail-val">2:01 AM · Today</div></div>
+    <div class="detail-row"><div class="detail-key">Next Check</div><div class="detail-val">2:00 AM · Tomorrow</div></div>
+    ${d.notes ? `<div class="detail-row"><div class="detail-key">Notes</div><div class="detail-val" style="font-weight:400;color:var(--gray-500)">${d.notes}</div></div>` : ''}
+    ${d.gcStatus === 'expired' ? `
+    <div style="margin-top:20px;background:var(--red-lt);border-left:3px solid var(--red);border-radius:6px;padding:12px 14px;font-size:13px;color:var(--red);font-weight:600">
+      ⛔ Do not deploy — expired license. Guard must renew through BSIS before returning to duty.
+    </div>` : ''}
+    ${d.gcStatus === 'expiring' || d.fpStatus === 'expiring' ? `
+    <div style="margin-top:20px;background:var(--amber-lt);border-left:3px solid var(--amber);border-radius:6px;padding:12px 14px;font-size:13px;color:var(--amber);font-weight:600">
+      ⚠️ License expiring soon — notify guard to begin BSIS renewal process now.
+    </div>` : ''}
+  `;
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('guardDrawer').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('guardDrawer').classList.remove('open');
+}
+
+// ── MODAL ─────────────────────────────────────────────
+function openUploadModal() {
+  document.getElementById('addModal').classList.add('open');
+}
+function closeUploadModal() {
+  document.getElementById('addModal').classList.remove('open');
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('addModal')) closeUploadModal();
+}
+function addGuardSubmit() {
+  closeUploadModal();
+  showToast('Guard added — verifying license with BSIS...', 'success');
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────
+let notifOpen = false;
+function toggleNotif() {
+  notifOpen = !notifOpen;
+  document.getElementById('notifPanel').classList.toggle('open', notifOpen);
+}
+function closeNotif() {
+  notifOpen = false;
+  document.getElementById('notifPanel').classList.remove('open');
+}
+function clearNotifs() {
+  document.getElementById('notifPanel').querySelector('.notif-title').textContent = 'Alerts (all read)';
+  document.querySelector('.notif-dot').style.display = 'none';
+  document.querySelector('.notif-clear').textContent = '';
+  showToast('All alerts marked as read', 'success');
+}
+document.addEventListener('click', e => {
+  if (notifOpen && !e.target.closest('.notif-panel') && !e.target.closest('.icon-btn')) closeNotif();
+});
+
+// ── TOAST ─────────────────────────────────────────────
+function showToast(msg, type) {
+  const tc = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type || ''}`;
+  const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warn' ? '⚠' : '→';
+  t.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  tc.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(8px)'; t.style.transition='all .3s'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// ── MISC ──────────────────────────────────────────────
+function selectAll(el) { document.querySelectorAll('#roster-tbody input[type=checkbox]').forEach(c => c.checked = el.checked); }
+function exportCSV()    { showToast('Generating PDF report...', 'success'); }
+function verifyNow()    { closeDrawer(); showToast('License re-verification started', 'success'); }
+function runManualCheck() { showToast('Manual check started — checking all 151 licenses...', ''); }
+function handleDrop(e)  { e.preventDefault(); document.getElementById('upload-zone').classList.remove('drag'); const f = e.dataTransfer.files[0]; if (f) showToast(`"${f.name}" uploaded — processing...`, 'success'); }
+function handleFileSelect(input) { if (input.files[0]) showToast(`"${input.files[0].name}" uplo
