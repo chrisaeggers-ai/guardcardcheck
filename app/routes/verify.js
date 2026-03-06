@@ -13,7 +13,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { verifyLicense, searchByName, verifyRoster, getSupportedStates } = require('../services/verificationEngine');
 const { getState } = require('../config/states');
-const authMiddleware = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 // ============================================================
 // Rate Limiters by Tier
