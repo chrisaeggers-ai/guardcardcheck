@@ -392,6 +392,11 @@ async function provisionSubscription(checkoutSession, db) {
   const { metadata, customer, subscription: subscriptionId } = checkoutSession;
   const { userId, planId, billing } = metadata;
 
+  if (userId === 'guest') {
+    console.log('[Stripe] Guest checkout completed — skipping DB provision (no user to update).');
+    return;
+  }
+
   // Fetch the full subscription object
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const priceId = subscription.items.data[0].price.id;
@@ -462,7 +467,11 @@ async function provisionEventPack(checkoutSession, db) {
   const { metadata, customer } = checkoutSession;
   const { userId, eventName } = metadata;
 
-  // Generate a unique token for this event pack
+  if (userId === 'guest') {
+    console.log('[Stripe] Guest event pack completed — skipping DB provision.');
+    return null;
+  }
+
   const crypto = require('crypto');
   const token = 'ep_' + crypto.randomBytes(24).toString('hex');
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days

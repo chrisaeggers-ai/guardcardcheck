@@ -47,19 +47,33 @@ const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
 
 // ─────────────────────────────────────────────────────────────
-// Database
+// Database (optional for local dev)
+// - Default is DISABLE_DB=true in `npm run dev` (see package.json)
+// - Enable DB by running with DISABLE_DB=false and DATABASE_URL set
 // ─────────────────────────────────────────────────────────────
-const db = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+const dbEnabled = !!process.env.DATABASE_URL && process.env.DISABLE_DB !== 'true';
+let db;
 
-db.connect()
-  .then(c => { c.release(); console.log('✅ PostgreSQL connected'); })
-  .catch(err => { console.error('❌ PostgreSQL connection failed:', err.message); process.exit(1); });
+if (dbEnabled) {
+  db = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
+
+  db.connect()
+    .then(c => { c.release(); console.log('✅ PostgreSQL connected'); })
+    .catch(err => { console.error('❌ PostgreSQL connection failed:', err.message); process.exit(1); });
+} else {
+  db = {
+    async query() {
+      throw new Error('Database is disabled (no DATABASE_URL set or DISABLE_DB=true).');
+    },
+  };
+  console.log('⚠️ PostgreSQL disabled — skipping connection (set DATABASE_URL and DISABLE_DB=false to enable).');
+}
 
 app.set('db', db);
 
@@ -264,9 +278,9 @@ cron.schedule('0 3 1 * *', async () => {
 }, { timezone: 'America/Los_Angeles' });
 
 // ─────────────────────────────────────────────────────────────
-// Start
+// Start + graceful shutdown (Ctrl+C releases port)
 // ─────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║         GuardCardCheck.com  v2.0  — Production           ║
@@ -282,5 +296,17 @@ app.listen(PORT, () => {
 ║  DCA:    ${(process.env.DCA_API_KEY ? '✅ Key set' : '⏳  Pending DCA approval').padEnd(47)}║
 ╚══════════════════════════════════════════════════════════╝`);
 });
+
+function shutdown() {
+  console.log('\nShutting down...');
+  server.close(() => {
+    console.log('Server closed. Port', PORT, 'released.');
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 5000).unref();
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 module.exports = app;

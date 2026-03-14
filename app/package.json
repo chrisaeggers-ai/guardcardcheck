@@ -5,8 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon --legacy-watch --watch server.js --watch routes --watch services --watch config --watch middleware --watch db --watch public server.js",
-    "dev:stripe": "concurrently \"nodemon --legacy-watch --watch server.js --watch routes --watch services --watch config --watch middleware --watch db --watch public server.js\" \"stripe listen --forward-to localhost:3000/api/billing/webhook\"",
+    "dev": "DISABLE_DB=true nodemon --legacy-watch --watch server.js --watch routes --watch services --watch config --watch middleware --watch db --watch public server.js",
+    "dev:db": "DISABLE_DB=false nodemon --legacy-watch --watch server.js --watch routes --watch services --watch config --watch middleware --watch db --watch public server.js",
+    "dev:stripe": "concurrently \"DISABLE_DB=true nodemon --legacy-watch --watch server.js --watch routes --watch services --watch config --watch middleware --watch db --watch public server.js\" \"stripe listen --forward-to localhost:3000/api/billing/webhook\"",
+    "dev:stripe:db": "concurrently \"DISABLE_DB=false nodemon --legacy-watch --watch server.js --watch routes --watch services --watch config --watch middleware --watch db --watch public server.js\" \"stripe listen --forward-to localhost:3000/api/billing/webhook\"",
     "db:setup": "psql $DATABASE_URL -f db/schema.sql",
     "db:setup:local": "psql -d guardcardcheck -f db/schema.sql"
   },

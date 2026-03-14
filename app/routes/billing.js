@@ -120,6 +120,35 @@ router.post('/checkout/:planId', authMiddleware, async (req, res) => {
 });
 
 /**
+ * POST /api/billing/checkout-guest/:planId
+ * Create Stripe Checkout WITHOUT login (for testing). Body: { billing, email }
+ */
+router.post('/checkout-guest/:planId', async (req, res) => {
+  const { planId } = req.params;
+  const { billing = 'monthly', email } = req.body;
+
+  if (planId === 'free') return res.status(400).json({ error: 'Cannot checkout the free plan.' });
+  if (!PLANS[planId]) return res.status(404).json({ error: `Unknown plan: ${planId}` });
+  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ error: 'Valid email is required.' });
+  }
+
+  try {
+    const session = await stripeService.createCheckoutSession({
+      planId,
+      billing,
+      stripeCustomerId: null,
+      userId: 'guest',
+      userEmail: email.trim(),
+    });
+    res.json({ checkoutUrl: session.url, sessionId: session.id });
+  } catch (error) {
+    console.error('[Billing] Guest checkout error:', error.message);
+    res.status(500).json({ error: 'Failed to create checkout session. Please try again.' });
+  }
+});
+
+/**
  * POST /api/billing/event-pack
  * Create a checkout for the $49 Event Pack add-on.
  *
@@ -140,6 +169,29 @@ router.post('/event-pack', authMiddleware, async (req, res) => {
     res.json({ checkoutUrl: session.url, sessionId: session.id });
   } catch (error) {
     console.error('[Billing] Event Pack checkout error:', error.message);
+    res.status(500).json({ error: 'Failed to create event pack checkout.' });
+  }
+});
+
+/**
+ * POST /api/billing/event-pack-guest
+ * Event Pack checkout without login. Body: { eventName?, email }
+ */
+router.post('/event-pack-guest', async (req, res) => {
+  const { eventName, email } = req.body;
+  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ error: 'Valid email is required.' });
+  }
+  try {
+    const session = await stripeService.createEventPackSession({
+      stripeCustomerId: null,
+      userEmail: email.trim(),
+      userId: 'guest',
+      eventName: eventName || '',
+    });
+    res.json({ checkoutUrl: session.url, sessionId: session.id });
+  } catch (error) {
+    console.error('[Billing] Event Pack guest checkout error:', error.message);
     res.status(500).json({ error: 'Failed to create event pack checkout.' });
   }
 });

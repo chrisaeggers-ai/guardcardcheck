@@ -1315,4 +1315,81 @@ function exportCSV()    { showToast('Generating PDF report...', 'success'); }
 function verifyNow()    { closeDrawer(); showToast('License re-verification started', 'success'); }
 function runManualCheck() { showToast('Manual check started — checking all 151 licenses...', ''); }
 function handleDrop(e)  { e.preventDefault(); document.getElementById('upload-zone').classList.remove('drag'); const f = e.dataTransfer.files[0]; if (f) showToast(`"${f.name}" uploaded — processing...`, 'success'); }
-function handleFileSelect(input) { if (input.files[0]) showToast(`"${input.files[0].name}" uplo
+function handleFileSelect(input) { if (input.files[0]) showToast(`"${input.files[0].name}" uplofunction handleFileSelect(input) { if (input.files[0]) showToast(`"${input.files[0].name}" uploaded — processing...`, 'success'); }
+
+// ── API INTEGRATION ───────────────────────────────────────────────────────────
+const API = window.GCC_API_BASE || '';
+
+async function apiFetch(path, opts = {}) {
+  const token = localStorage.getItem('gcc_token');
+  return fetch(API + path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+      ...(opts.headers || {}),
+    },
+    credentials: 'include',
+  });
+}
+
+(async function init() {
+  const token = localStorage.getItem('gcc_token');
+  if (!token) { window.location.href = '/login'; return; }
+
+  try {
+    const [meRes, usageRes] = await Promise.all([
+      apiFetch('/api/auth/me'),
+      apiFetch('/api/billing/usage'),
+    ]);
+
+    if (meRes.status === 401) {
+      localStorage.removeItem('gcc_token');
+      window.location.href = '/login';
+      return;
+    }
+
+    const me = await meRes.json();
+    const usage = usageRes.ok ? await usageRes.json() : null;
+
+    const orgEl = document.getElementById('orgName');
+    const planEl = document.getElementById('orgPlan');
+    if (orgEl) orgEl.textContent = me.organizationName || me.firstName || me.email;
+    if (planEl) planEl.textContent = (me.planName || 'Free') + ' Plan';
+
+    const planNameEl  = document.getElementById('billingPlanName');
+    const billingDEl  = document.getElementById('billingDetail');
+    const billingFEl  = document.getElementById('billingFeatures');
+    if (planNameEl) planNameEl.textContent = me.planName || 'Free';
+    if (billingDEl && me.planExpiresAt) {
+      const d = new Date(me.planExpiresAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const prices = { free:'Free', starter:'$29/month', business:'$79/month', enterprise:'$199/month' };
+      billingDEl.textContent = (prices[me.plan] || '') + (me.plan !== 'free' ? ' · Renews ' + d : '');
+    }
+    if (billingFEl && usage && !usage.monthly.unlimited) {
+      billingFEl.innerHTML = `<strong>${usage.monthly.used} / ${usage.monthly.limit}</strong> verifications used this month`;
+    }
+  } catch (err) {
+    console.error('Dashboard init:', err);
+  }
+})();
+
+async function manageBilling() {
+  try {
+    showToast('Opening billing portal...', '');
+    const res = await apiFetch('/api/billing/portal');
+    const data = await res.json();
+    if (data.portalUrl) window.location.href = data.portalUrl;
+    else showToast(data.error || 'Could not open billing portal', 'error');
+  } catch { showToast('Network error', 'error'); }
+}
+
+function logout() {
+  localStorage.removeItem('gcc_token');
+  localStorage.removeItem('gcc_user');
+  fetch(API + '/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+  window.location.href = '/login';
+}
+</script>
+</body>
+</html>

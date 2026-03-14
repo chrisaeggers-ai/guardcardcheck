@@ -417,7 +417,7 @@ body { font-family: var(--font); background: var(--gray-50); color: var(--gray-8
           <div class="plan-price" id="price-starter"><sup>$</sup>29<span class="period">/mo</span></div>
         </div>
         <div class="plan-annual-note" id="note-starter">Billed monthly</div>
-        <button class="plan-cta primary" onclick="checkout('starter')">Start Starter</button>
+        <button id="btn-starter" class="plan-cta primary" data-plan="starter">Start Starter</button>
       </div>
       <div class="plan-body">
         <div class="feature-group-label">Searches</div>
@@ -444,7 +444,7 @@ body { font-family: var(--font); background: var(--gray-50); color: var(--gray-8
           <div class="plan-price" id="price-business"><sup>$</sup>79<span class="period">/mo</span></div>
         </div>
         <div class="plan-annual-note" id="note-business">Billed monthly</div>
-        <button class="plan-cta primary" onclick="checkout('business')">Start Business</button>
+        <button id="btn-business" class="plan-cta primary" data-plan="business">Start Business</button>
       </div>
       <div class="plan-body">
         <div class="feature-group-label">Searches</div>
@@ -470,7 +470,7 @@ body { font-family: var(--font); background: var(--gray-50); color: var(--gray-8
           <div class="plan-price" id="price-enterprise"><sup>$</sup>199<span class="period">/mo</span></div>
         </div>
         <div class="plan-annual-note" id="note-enterprise">Billed monthly</div>
-        <button class="plan-cta primary" onclick="checkout('enterprise')">Start Enterprise</button>
+        <button id="btn-enterprise" class="plan-cta primary" data-plan="enterprise">Start Enterprise</button>
       </div>
       <div class="plan-body">
         <div class="feature-group-label">Searches</div>
@@ -508,7 +508,7 @@ body { font-family: var(--font); background: var(--gray-50); color: var(--gray-8
     <div class="addon-pricing">
       <div class="addon-price"><sup>$</sup>49</div>
       <div class="addon-price-note">one time · per event</div>
-      <button class="btn-addon" onclick="purchaseEventPack()">Buy Event Pack</button>
+      <button id="btn-event-pack" class="btn-addon">Buy Event Pack</button>
     </div>
   </div>
 </section>
@@ -741,81 +741,88 @@ function setBilling(mode) {
   }
 }
 
-// ── Checkout ──
-async function checkout(planId) {
-  // Check if logged in
-  const token = localStorage.getItem('gcc_token') || getCookie('token');
+// Attach event listeners (CSP-safe: no inline onclick handlers)
+document.getElementById('btn-starter')?.addEventListener('click', (e) => checkout('starter', e));
+document.getElementById('btn-business')?.addEventListener('click', (e) => checkout('business', e));
+document.getElementById('btn-enterprise')?.addEventListener('click', (e) => checkout('enterprise', e));
+document.getElementById('btn-event-pack')?.addEventListener('click', (e) => purchaseEventPack(e));
 
-  if (!token) {
-    // Not logged in — redirect to register with plan pre-selected
-    sessionStorage.setItem('pending_plan', planId);
-    sessionStorage.setItem('pending_billing', billing);
-    window.location.href = `/register?plan=${planId}&billing=${billing}`;
+// ── Checkout ──
+async function checkout(planId, ev) {
+  const token = localStorage.getItem('gcc_token') || getCookie('token');
+  const btn = ev && ev.currentTarget;
+  const originalText = btn ? btn.textContent : '';
+
+  const runCheckout = async (url, body, headers = {}) => {
+    if (btn) { btn.classList.add('btn-loading'); btn.textContent = 'Loading...'; btn.disabled = true; }
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 401 && token) {
+          localStorage.removeItem('gcc_token');
+          sessionStorage.setItem('pending_plan', planId);
+          window.location.href = '/login?redirect=/pricing';
+          return;
+        }
+        throw new Error(data.error || 'Checkout failed');
+      }
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      alert('Checkout error: ' + (err.message || 'Unknown error'));
+    } finally {
+      if (btn) { btn.classList.remove('btn-loading'); btn.textContent = originalText; btn.disabled = false; }
+    }
+  };
+
+  if (token) {
+    await runCheckout('/api/billing/checkout/' + planId, { billing }, { 'Authorization': 'Bearer ' + token });
     return;
   }
 
-  const btn = event.currentTarget;
-  const originalText = btn.textContent;
-  btn.classList.add('btn-loading');
-  btn.textContent = 'Loading...';
-  btn.disabled = true;
-
-  try {
-    const res = await fetch('/api/billing/checkout/' + planId, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token,
-      },
-      body: JSON.stringify({ billing }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      if (res.status === 401) {
-        // Token expired
-        localStorage.removeItem('gcc_token');
-        sessionStorage.setItem('pending_plan', planId);
-        window.location.href = '/login?redirect=/pricing';
-        return;
-      }
-      throw new Error(data.error || 'Checkout failed');
-    }
-
-    // Redirect to Stripe Checkout
-    window.location.href = data.checkoutUrl;
-
-  } catch (err) {
-    alert('Checkout error: ' + err.message);
-    btn.classList.remove('btn-loading');
-    btn.textContent = originalText;
-    btn.disabled = false;
-  }
+  const email = (prompt('Enter your email to continue to payment (no account needed):') || '').trim();
+  if (!email) return;
+  await runCheckout('/api/billing/checkout-guest/' + planId, { billing, email });
 }
 
 // ── Event Pack ──
-async function purchaseEventPack() {
-  const eventName = prompt('Enter event name (optional):') ?? '';
+async function purchaseEventPack(ev) {
+  const eventName = (prompt('Enter event name (optional):') || '').trim();
   const token = localStorage.getItem('gcc_token') || getCookie('token');
 
-  if (!token) {
-    sessionStorage.setItem('pending_addon', 'event_pack');
-    window.location.href = '/register?addon=event_pack';
+  if (token) {
+    try {
+      const res = await fetch('/api/billing/event-pack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ eventName }),
+      });
+      const data = await res.json();
+      if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+      else throw new Error(data.error);
+    } catch (err) {
+      alert('Error: ' + (err.message || 'Unknown error'));
+    }
     return;
   }
 
+  const email = (prompt('Enter your email to continue to payment (no account needed):') || '').trim();
+  if (!email) return;
   try {
-    const res = await fetch('/api/billing/event-pack', {
+    const res = await fetch('/api/billing/event-pack-guest', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ eventName }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventName, email }),
     });
     const data = await res.json();
     if (data.checkoutUrl) window.location.href = data.checkoutUrl;
-    else throw new Error(data.error);
+    else throw new Error(data.error || 'Checkout failed');
   } catch (err) {
-    alert('Error: ' + err.message);
+    alert('Error: ' + (err.message || 'Unknown error'));
   }
 }
 
