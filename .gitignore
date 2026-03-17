@@ -1,0 +1,18 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# App
+app/node_modules/
+app/frontend/node_modules/
+app/.env
+app/frontend/.env
+
+# Build output
+app/public/assets/
+app/frontend/dist/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
