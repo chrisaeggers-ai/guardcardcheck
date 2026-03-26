@@ -113,6 +113,24 @@ router.post('/verify', freeLimiter, starterLimiter, async (req, res) => {
 });
 
 /**
+ * POST /api/search-public
+ * Public name search — single state, max 10 results, no auth required.
+ */
+router.post('/search-public', freeLimiter, async (req, res) => {
+  const { firstName, lastName, stateCode } = req.body;
+  if (!firstName || !lastName) return res.status(400).json({ error: 'firstName and lastName are required.' });
+  if (!stateCode) return res.status(400).json({ error: 'stateCode is required.' });
+
+  try {
+    const results = await searchByName(firstName.trim(), lastName.trim(), [stateCode.trim().toUpperCase()]);
+    res.json({ query: { firstName, lastName, stateCode }, total: results.length, results: results.slice(0, 10) });
+  } catch (error) {
+    console.error('Public name search error:', error.message);
+    res.status(500).json({ error: 'Search service temporarily unavailable.' });
+  }
+});
+
+/**
  * GET /api/search?firstName=John&lastName=Smith&states=CA,FL,TX
  * Search by guard name across one or multiple states
  * Requires Starter plan or above

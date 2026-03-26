@@ -13,6 +13,7 @@
     "db:setup:local": "psql -d guardcardcheck -f db/schema.sql"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.100.0",
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "cheerio": "^1.0.0-rc.12",

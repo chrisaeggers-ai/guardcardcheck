@@ -556,7 +556,24 @@
     .steps-grid { grid-template-columns: 1fr; }
     .search-row { flex-direction: column; }
     .trust-inner { gap: 22px; }
+    .hero-name-row { flex-direction: column; }
   }
+
+  .hero-tabs { display: flex; gap: 4px; background: var(--gray-100); border-radius: 10px; padding: 3px; margin-bottom: 14px; }
+  .hero-tab { flex: 1; padding: 8px 14px; border-radius: 7px; font-family: var(--font-body); font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--gray-400); transition: all .15s; }
+  .hero-tab.active { background: var(--white); color: var(--navy); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .hero-form { display: none; }
+  .hero-form.active { display: block; }
+  .hero-name-row { display: flex; gap: 10px; margin-bottom: 10px; }
+  .hero-name-row .search-input { flex: 1; }
+  .hero-results-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .hero-result-card { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 10px; text-align: left; border: 1.5px solid var(--gray-200); background: var(--white); }
+  .hero-result-card .hr-name { font-size: 14px; font-weight: 700; color: var(--navy); }
+  .hero-result-card .hr-meta { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+  .hr-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; white-space: nowrap; }
+  .hr-badge.ACTIVE { background: var(--green-light); color: var(--green); }
+  .hr-badge.EXPIRED,.hr-badge.REVOKED { background: var(--red-light); color: var(--red); }
+  .hr-badge.SUSPENDED,.hr-badge.PENDING,.hr-badge.UNKNOWN { background: var(--gray-100); color: var(--gray-600); }
 </style>
 </head>
 <body>
@@ -593,24 +610,37 @@
 
     <div class="search-widget">
       <div class="search-label">
-        <span>Search by License Number or Name</span>
+        <span>Verify a California Guard License</span>
         <span class="free-tag">FREE — 1 search/day</span>
       </div>
-      <div class="search-row">
-        <input class="search-input" type="text" id="licenseInput" placeholder="e.g. Guard Card #123456 or Full Name" />
-        <button class="search-btn" onclick="goVerify()">Verify Now →</button>
+      <div class="hero-tabs">
+        <button class="hero-tab active" data-htab="license">By License Number</button>
+        <button class="hero-tab" data-htab="name">By Guard Name</button>
       </div>
-      <p class="search-note">Checks both Guard Card (PPO 14431) and Exposed Firearm Permit (PPO 14432) status in real time.</p>
+      <div class="hero-form active" id="hero-form-license">
+        <div class="search-row">
+          <input class="search-input" type="text" id="licenseInput" placeholder="e.g. 1441140 or G1234567" />
+          <button class="search-btn" id="heroLicBtn">Verify Now →</button>
+        </div>
+      </div>
+      <div class="hero-form" id="hero-form-name">
+        <div class="hero-name-row">
+          <input class="search-input" type="text" id="heroFN" placeholder="First Name" />
+          <input class="search-input" type="text" id="heroLN" placeholder="Last Name" />
+        </div>
+        <div class="search-row">
+          <button class="search-btn" id="heroNameBtn" style="width:100%">Search by Name →</button>
+        </div>
+      </div>
+      <p class="search-note">Searches the official DCA iServices database for BSIS guard registrations in real time.</p>
       <div class="demo-result" id="demoResult">
         <div class="result-status">
           <div class="dot"></div>
-          <div class="text" id="resultStatusText">VALID — Active License</div>
+          <div class="text" id="resultStatusText"></div>
         </div>
-        <div class="result-detail" id="resultDetail">
-          <strong>John A. Smith</strong> · Guard Card #123456 · Issued: 03/12/2022 · <strong>Expires: 03/12/2026</strong>
-          <br/>Firearm Permit: <strong>Active</strong> · Permit #FE-78901 · Expires: 09/15/2025
-        </div>
+        <div class="result-detail" id="resultDetail"></div>
       </div>
+      <div class="hero-results-list" id="heroResultsList"></div>
     </div>
   </div>
 </section>
@@ -958,63 +988,7 @@
   </div>
 </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// Homepage hero search → redirect to /verify with pre-filled query
-function goVerify() {
-  const val = document.getElementById('licenseInput').value.trim();
-  if (!val) {
-    document.getElementById('licenseInput').style.borderColor = '#DC2626';
-    document.getElementById('licenseInput').focus();
-    setTimeout(() => { document.getElementById('licenseInput').style.borderColor = ''; }, 1800);
-    return;
-  }
-  window.location.href = '/verify?q=' + encodeURIComponent(val);
-}
-document.addEventListener('DOMContentLoaded', () => {
-  const input = document.getElementById('licenseInput');
-  if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') goVerify(); });
-  // If logged in, update nav
-  const token = localStorage.getItem('gcc_token');
-  if (token) {
-    const navCta = document.querySelector('.nav-cta');
-    if (navCta) { navCta.textContent = 'Dashboard'; navCta.href = '/dashboard'; }
-  }
-});
 
-// legacy — not used but kept for compat
-function doSearch() {
-  const val = document.getElementById('licenseInput').value.trim();
-  const result = document.getElementById('demoResult');
-  const statusText = document.getElementById('resultStatusText');
-  const detail = document.getElementById('resultDetail');
-
-  if (!val) {
-    document.getElementById('licenseInput').style.borderColor = '#DC2626';
-    document.getElementById('licenseInput').focus();
-    setTimeout(() => { document.getElementById('licenseInput').style.borderColor = ''; }, 1800);
-    return;
-  }
-
-  result.classList.remove('show', 'invalid');
-
-  // Simulate a brief lookup
-  const btn = document.querySelector('.search-btn');
-  btn.textContent = 'Checking…';
-  btn.disabled = true;
-
-  setTimeout(() => {
-    btn.textContent = 'Verify Now →';
-    btn.disabled = false;
-
-    // Demo: numbers ending in even = valid, odd = expired
-    const lastChar = val.slice(-1);
-    const isExpired = ['1','3','5','7','9','x','z','b'].includes(lastChar.toLowerCase());
-
-    if (isExpired) {
-      result.classList.add('show', 'invalid');
-      statusText.textContent = 'EXPIRED — License No Longer Active';
-      detail.innerHTML = '<strong>' + escapeHtml(val.toUpperCase()) + '</strong> · Guard Card Status: <strong style="color:#DC2626">EXPIRED</strong> · Expiration Date: 11/30/2024<br/>This guard is not authorized to work. <strong>Do not deploy.</strong>';
-    } else {
-      result.classList.add('show');
-      statusText.textContent = 'VALID — Active License';
-      detail.innerHTML = 'Guard Card <strong>' + escapeHtml(val.toUpperCase()) + '</strong> · Status: <strong styl
+<script src="/home-script.js"></script>
+</body>
+</html>

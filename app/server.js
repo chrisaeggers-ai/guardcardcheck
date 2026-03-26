@@ -293,7 +293,7 @@ const server = app.listen(PORT, () => {
 ║  States: CA · FL · TX · IL · VA · NV · OR · WA · AZ · NC║
 ║  DB:     ${(process.env.DATABASE_URL ? '✅ Connected' : '⚠️  No DATABASE_URL').padEnd(47)}║
 ║  Stripe: ${(process.env.STRIPE_SECRET_KEY ? '✅ Configured' : '⚠️  No STRIPE_SECRET_KEY').padEnd(47)}║
-║  DCA:    ${(process.env.DCA_API_KEY ? '✅ Key set' : '⏳  Pending DCA approval').padEnd(47)}║
+║  DCA:    ${(process.env.DCA_APP_ID && (process.env.DCA_APP_KEY || process.env.DCA_API_KEY) ? '✅ iServices (CA)' : '⏳  Set DCA_APP_ID + DCA_APP_KEY').padEnd(47)}║
 ╚══════════════════════════════════════════════════════════╝`);
 });
 

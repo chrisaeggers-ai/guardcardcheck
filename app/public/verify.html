@@ -707,13 +707,13 @@ select.form-control { cursor: pointer; }
     <div class="search-card">
       <!-- Tab switcher -->
       <div class="search-tabs">
-        <button class="search-tab active" onclick="switchTab('license')">By License Number</button>
-        <button class="search-tab" onclick="switchTab('name')">By Guard Name</button>
-        <button class="search-tab" onclick="switchTab('batch')">Upload Roster</button>
+        <button class="search-tab active">By License Number</button>
+        <button class="search-tab">By Guard Name</button>
+        <button class="search-tab">Upload Roster</button>
       </div>
 
       <!-- TAB 1: License Number Search -->
-      <form class="search-form active" id="form-license" onsubmit="handleVerify(event)">
+      <form class="search-form active" id="form-license">
         <div class="form-row cols-3">
           <div class="form-group">
             <label class="form-label">State</label>
@@ -737,7 +737,7 @@ select.form-control { cursor: pointer; }
             <label class="form-label" id="license-label">License Number</label>
             <input type="text" class="form-control" id="license-input"
               placeholder="e.g. G1234567" required autocomplete="off" spellcheck="false"
-              oninput="updateLicensePlaceholder()">
+             >
           </div>
           <div class="form-group" style="justify-content: flex-end;">
             <label class="form-label">&nbsp;</label>
@@ -754,7 +754,7 @@ select.form-control { cursor: pointer; }
       </form>
 
       <!-- TAB 2: Name Search -->
-      <form class="search-form" id="form-name" onsubmit="handleNameSearch(event)">
+      <form class="search-form" id="form-name">
         <div class="form-row cols-4">
           <div class="form-group">
             <label class="form-label">State</label>
@@ -817,16 +817,16 @@ select.form-control { cursor: pointer; }
     <div class="coverage-bar">
       <span class="coverage-label">10 States</span>
       <div class="coverage-states">
-        <div class="state-chip" onclick="selectState('CA')"><span class="dot"></span>CA · California</div>
-        <div class="state-chip" onclick="selectState('FL')"><span class="dot"></span>FL · Florida</div>
-        <div class="state-chip" onclick="selectState('TX')"><span class="dot"></span>TX · Texas</div>
-        <div class="state-chip" onclick="selectState('IL')"><span class="dot"></span>IL · Illinois</div>
-        <div class="state-chip" onclick="selectState('VA')"><span class="dot"></span>VA · Virginia</div>
-        <div class="state-chip" onclick="selectState('NV')"><span class="dot"></span>NV · Nevada</div>
-        <div class="state-chip" onclick="selectState('OR')"><span class="dot"></span>OR · Oregon</div>
-        <div class="state-chip" onclick="selectState('WA')"><span class="dot"></span>WA · Washington</div>
-        <div class="state-chip" onclick="selectState('AZ')"><span class="dot"></span>AZ · Arizona</div>
-        <div class="state-chip" onclick="selectState('NC')"><span class="dot"></span>NC · N. Carolina</div>
+        <div class="state-chip"><span class="dot"></span>CA · California</div>
+        <div class="state-chip"><span class="dot"></span>FL · Florida</div>
+        <div class="state-chip"><span class="dot"></span>TX · Texas</div>
+        <div class="state-chip"><span class="dot"></span>IL · Illinois</div>
+        <div class="state-chip"><span class="dot"></span>VA · Virginia</div>
+        <div class="state-chip"><span class="dot"></span>NV · Nevada</div>
+        <div class="state-chip"><span class="dot"></span>OR · Oregon</div>
+        <div class="state-chip"><span class="dot"></span>WA · Washington</div>
+        <div class="state-chip"><span class="dot"></span>AZ · Arizona</div>
+        <div class="state-chip"><span class="dot"></span>NC · N. Carolina</div>
       </div>
     </div>
   </div>
@@ -854,13 +854,13 @@ select.form-control { cursor: pointer; }
         <div class="states-header-title">10-State Coverage — Day One</div>
         <div class="states-header-sub">All states verify individual guard licenses AND company/agency licenses</div>
       </div>
-      <span style="font-size:13px;color:var(--blue);cursor:pointer;" onclick="toggleStateDetails()">
+      <span style="font-size:13px;color:var(--blue);cursor:pointer;">
         Show details ▾
       </span>
     </div>
     <div class="states-grid" id="states-grid">
       <!-- CA -->
-      <div class="state-row" onclick="selectState('CA')">
+      <div class="state-row">
         <div class="state-abbr">CA</div>
         <div class="state-info">
           <div class="state-name">California</div>
@@ -874,7 +874,7 @@ select.form-control { cursor: pointer; }
         </div>
       </div>
       <!-- FL -->
-      <div class="state-row" onclick="selectState('FL')">
+      <div class="state-row">
         <div class="state-abbr">FL</div>
         <div class="state-info">
           <div class="state-name">Florida</div>
@@ -888,7 +888,7 @@ select.form-control { cursor: pointer; }
         </div>
       </div>
       <!-- TX -->
-      <div class="state-row" onclick="selectState('TX')">
+      <div class="state-row">
         <div class="state-abbr">TX</div>
         <div class="state-info">
           <div class="state-name">Texas</div>
@@ -902,7 +902,7 @@ select.form-control { cursor: pointer; }
         </div>
       </div>
       <!-- IL -->
-      <div class="state-row" onclick="selectState('IL')">
+      <div class="state-row">
         <div class="state-abbr">IL</div>
         <div class="state-info">
           <div class="state-name">Illinois</div>
@@ -916,7 +916,7 @@ select.form-control { cursor: pointer; }
         </div>
       </div>
       <!-- VA -->
-      <div class="state-row" onclick="selectState('VA')">
+      <div class="state-row">
         <div class="state-abbr">VA</div>
         <div class="state-info">
           <div class="state-name">Virginia</div>
@@ -930,7 +930,7 @@ select.form-control { cursor: pointer; }
         </div>
       </div>
       <!-- NV -->
-      <div class="state-row" onclick="selectState('NV')">
+      <div class="state-row">
         <div class="state-abbr">NV</div>
         <div class="state-info">
           <div class="state-name">Nevada</div>
@@ -944,7 +944,7 @@ select.form-control { cursor: pointer; }
         </div>
       </div>
       <!-- OR -->
-      <div class="state-row" onclick="selectState('OR')">
+      <div class="state-row">
         <div class="state-abbr">OR</div>
         <div class="state-info">
           <div class="state-name">Oregon</div>
@@ -958,7 +958,7 @@ select.form-control { cursor: pointer; }
         </div>
       </div>
       <!-- WA -->
-      <div class="state-row" onclick="selectState('WA')">
+      <div class="state-row">
         <div class="state-abbr">WA</div>
         <div class="state-info">
           <div class="state-name">Washington</div>
@@ -972,7 +972,7 @@ select.form-control { cursor: pointer; }
         </div>
       </div>
       <!-- AZ -->
-      <div class="state-row" onclick="selectState('AZ')">
+      <div class="state-row">
         <div class="state-abbr">AZ</div>
         <div class="state-info">
           <div class="state-name">Arizona</div>
@@ -986,7 +986,7 @@ select.form-control { cursor: pointer; }
         </div>
       </div>
       <!-- NC -->
-      <div class="state-row" onclick="selectState('NC')">
+      <div class="state-row">
         <div class="state-abbr">NC</div>
         <div class="state-info">
           <div class="state-name">North Carolina</div>
@@ -1007,338 +1007,7 @@ select.form-control { cursor: pointer; }
 
 </main>
 
-<script>
-// ── State license format hints ──
-const STATE_HINTS = {
-  CA: { label: 'License Number', placeholder: 'G1234567 or FE12345 or PPO12345', example: 'G' },
-  FL: { label: 'License Number', placeholder: 'D1234567 (Class D) or G7654321 (Class G)', example: 'D or G' },
-  TX: { label: 'License Number', placeholder: '1234567 (Level II/III)', example: '7 digits' },
-  IL: { label: 'PERC Card Number', placeholder: '129-012345 (PERC) or 133-012345 (FCC)', example: '129-' },
-  VA: { label: 'Registration Number', placeholder: '123456', example: '6 digits' },
-  NV: { label: 'Work Card Number', placeholder: 'WC123456', example: 'WC' },
-  OR: { label: 'Certificate Number', placeholder: '12345', example: '5 digits' },
-  WA: { label: 'License Number', placeholder: 'SG123456789', example: 'SG' },
-  AZ: { label: 'License Number', placeholder: '123456789', example: '9 digits' },
-  NC: { label: 'Registration Number', placeholder: '12345678', example: '8 digits' },
-};
 
-function updateLicensePlaceholder() {
-  const state = document.getElementById('state-select').value;
-  const input = document.getElementById('license-input');
-  const label = document.getElementById('license-label');
-  if (state && STATE_HINTS[state]) {
-    input.placeholder = STATE_HINTS[state].placeholder;
-    label.textContent = STATE_HINTS[state].label;
-  }
-}
-
-document.getElementById('state-select').addEventListener('change', updateLicensePlaceholder);
-
-// ── Tab switching ──
-function switchTab(tab) {
-  document.querySelectorAll('.search-tab').forEach((t, i) => {
-    t.classList.toggle('active', ['license','name','batch'][i] === tab);
-  });
-  document.querySelectorAll('.search-form').forEach((f, i) => {
-    f.classList.toggle('active', ['form-license','form-name','form-batch'][i] === `form-${tab}`);
-  });
-}
-
-// ── Click state chip to auto-select in form ──
-function selectState(code) {
-  const sel = document.getElementById('state-select');
-  if (sel) { sel.value = code; updateLicensePlaceholder(); }
-  const nameSel = document.getElementById('name-state-select');
-  if (nameSel) nameSel.value = code;
-  document.getElementById('license-input')?.focus();
-  switchTab('license');
-  document.querySelector('.hero').scrollIntoView({ behavior: 'smooth' });
-}
-
-// ── Handle license verify ──
-async function handleVerify(e) {
-  e.preventDefault();
-  const stateCode = document.getElementById('state-select').value;
-  const licenseNumber = document.getElementById('license-input').value.trim();
-  if (!stateCode || !licenseNumber) return;
-
-  const btn = document.getElementById('verify-btn');
-  btn.classList.add('loading');
-  btn.querySelector('.btn-text').textContent = 'Verifying...';
-
-  showLoading(stateCode, licenseNumber);
-
-  try {
-    // Call our API
-    const response = await fetch('/api/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stateCode, licenseNumber }),
-    });
-    const data = await response.json();
-    renderResult(data);
-  } catch (err) {
-    // Demo mode: show a sample result for testing
-    renderDemoResult(stateCode, licenseNumber);
-  } finally {
-    btn.classList.remove('loading');
-    btn.querySelector('.btn-text').textContent = '🔍 Verify License';
-  }
-}
-
-// ── Handle name search ──
-async function handleNameSearch(e) {
-  e.preventDefault();
-  const state = document.getElementById('name-state-select').value;
-  const firstName = document.getElementById('first-name').value.trim();
-  const lastName = document.getElementById('last-name').value.trim();
-  
-  // Show "requires upgrade" for demo
-  document.getElementById('result-area').innerHTML = `
-    <div class="not-found-card" style="margin-bottom:32px;">
-      <div class="not-found-icon">🔒</div>
-      <div class="not-found-title">Name Search Requires Starter Plan</div>
-      <div class="not-found-sub">Upgrade to search by guard name across all 10 states.</div>
-      <a href="/pricing" class="btn-verify" style="display:inline-flex;width:auto;text-decoration:none;margin-top:8px;">
-        View Plans →
-      </a>
-    </div>`;
-  document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// ── Show loading state ──
-function showLoading(stateCode, licenseNumber) {
-  const stateNames = {
-    CA:'California',FL:'Florida',TX:'Texas',IL:'Illinois',VA:'Virginia',
-    NV:'Nevada',OR:'Oregon',WA:'Washington',AZ:'Arizona',NC:'North Carolina'
-  };
-  document.getElementById('result-area').innerHTML = `
-    <div class="loading-card" style="margin-bottom:32px;">
-      <div class="loading-spinner"></div>
-      <div class="loading-state-name">Querying ${stateNames[stateCode] || stateCode} regulatory database</div>
-      <div class="loading-sub">${licenseNumber} · Checking status, expiration, and armed credentials...</div>
-      <div class="loading-steps">
-        <div class="loading-step active"></div>
-        <div class="loading-step"></div>
-        <div class="loading-step"></div>
-      </div>
-    </div>`;
-  document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// ── Render real API result ──
-function renderResult(data) {
-  if (!data || data.status === 'NOT_FOUND' || data.status === 'STATE_NOT_SUPPORTED') {
-    renderNotFound(data);
-    return;
-  }
-  
-  const expiryInfo = getExpiryInfo(data.expirationDate);
-  const iconMap = { ACTIVE:'✓', EXPIRED:'✗', REVOKED:'⊘', SUSPENDED:'⚠', PENDING:'⏳', UNKNOWN:'?' };
-  const iconColorMap = { ACTIVE:'green', EXPIRED:'red', REVOKED:'red', SUSPENDED:'amber', PENDING:'amber', UNKNOWN:'gray' };
-  const status = data.status || 'UNKNOWN';
-  const icon = iconMap[status] || '?';
-  const iconColor = iconColorMap[status] || 'gray';
-  
-  document.getElementById('result-area').innerHTML = `
-    <div class="result-section">
-      <div class="result-card">
-        <div class="result-header">
-          <div class="result-title">
-            <div class="result-icon ${iconColor}">${icon}</div>
-            <div>
-              <div class="result-name">${escHtml(data.holderName || 'Name Not Available')}</div>
-              <div class="result-license">${escHtml(data.stateCode)} · ${escHtml(data.licenseNumber || '')} · ${escHtml(data.licenseType || '')}</div>
-            </div>
-          </div>
-          <div>
-            <span class="status-badge ${status}">${status}</span>
-            ${data.isArmed ? '<span class="armed-badge" style="margin-left:8px;">🔫 Armed</span>' : ''}
-          </div>
-        </div>
-        <div class="result-body">
-          <div class="result-grid">
-            <div class="result-field">
-              <div class="result-field-label">License Type</div>
-              <div class="result-field-value">${escHtml(data.licenseType || '—')}</div>
-            </div>
-            <div class="result-field">
-              <div class="result-field-label">State · Agency</div>
-              <div class="result-field-value">
-                <span class="state-tag">${escHtml(data.stateCode)}</span>
-              </div>
-            </div>
-            <div class="result-field">
-              <div class="result-field-label">Issue Date</div>
-              <div class="result-field-value">${data.issueDate ? formatDate(data.issueDate) : '—'}</div>
-            </div>
-            <div class="result-field">
-              <div class="result-field-label">Expiration Date</div>
-              <div class="result-field-value ${expiryInfo.class}">${data.expirationDate ? formatDate(data.expirationDate) : '—'}</div>
-            </div>
-            ${data.companyName ? `
-            <div class="result-field">
-              <div class="result-field-label">Company / Agency</div>
-              <div class="result-field-value">${escHtml(data.companyName)}</div>
-            </div>` : ''}
-            <div class="result-field">
-              <div class="result-field-label">Verified</div>
-              <div class="result-field-value" style="font-size:13px;">${formatDateTime(data.verifiedAt)}</div>
-            </div>
-          </div>
-          
-          ${data.expirationDate ? `
-          <div class="expiry-bar-wrapper">
-            <div class="expiry-bar-label">
-              <span>License Validity</span>
-              <span>${expiryInfo.label}</span>
-            </div>
-            <div class="expiry-bar">
-              <div class="expiry-bar-fill ${expiryInfo.barClass}" style="width:${expiryInfo.pct}%"></div>
-            </div>
-          </div>` : ''}
-          
-          ${getStatusAlert(data)}
-        </div>
-      </div>
-    </div>`;
-
-  document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// ── Demo result for testing (when API not connected) ──
-function renderDemoResult(stateCode, licenseNumber) {
-  // Pick a sample result type based on last char of license
-  const last = licenseNumber.slice(-1);
-  const demos = {
-    type: last < '3' ? 'expired' : last < '7' ? 'active' : 'not_found',
-  };
-  
-  if (demos.type === 'not_found') {
-    renderNotFound({ stateCode, licenseNumber });
-    return;
-  }
-
-  const stateNames = { CA:'California',FL:'Florida',TX:'Texas',IL:'Illinois',VA:'Virginia',NV:'Nevada',OR:'Oregon',WA:'Washington',AZ:'Arizona',NC:'North Carolina' };
-  const licenseTypes = { CA:'Guard Card',FL:'Class D Security Officer',TX:'Level II Security Officer',IL:'PERC Card',VA:'Unarmed Security Registration',NV:'Security Guard Work Card',OR:'Security Professional Certification',WA:'Security Guard License',AZ:'Unarmed Guard Registration',NC:'Security Guard Registration' };
-
-  const isActive = demos.type === 'active';
-  const expDate = isActive
-    ? new Date(Date.now() + 180*24*60*60*1000).toISOString()
-    : new Date(Date.now() - 60*24*60*60*1000).toISOString();
-
-  renderResult({
-    stateCode,
-    stateName: stateNames[stateCode] || stateCode,
-    licenseNumber,
-    licenseType: licenseTypes[stateCode] || 'Security License',
-    holderName: 'James T. Harrison',
-    status: isActive ? 'ACTIVE' : 'EXPIRED',
-    issueDate: new Date(Date.now() - 2*365*24*60*60*1000).toISOString(),
-    expirationDate: expDate,
-    isArmed: false,
-    agencyName: 'Demo State Agency',
-    verifiedAt: new Date().toISOString(),
-    _isDemo: true,
-  });
-}
-
-// ── Not Found ──
-function renderNotFound(data) {
-  document.getElementById('result-area').innerHTML = `
-    <div class="not-found-card" style="margin-bottom:32px;">
-      <div class="not-found-icon">🔍</div>
-      <div class="not-found-title">No License Found</div>
-      <div class="not-found-sub">
-        No active record was found for <strong>${escHtml(data?.licenseNumber || 'that number')}</strong> 
-        in the ${data?.stateCode || ''} database.
-      </div>
-      <div class="not-found-tips">
-        <div class="not-found-tip">Confirm the license number format for your state</div>
-        <div class="not-found-tip">The license may be expired — try a name search</div>
-        <div class="not-found-tip">New licenses can take 24-48 hours to appear in the database</div>
-        <div class="not-found-tip">Verify you selected the correct issuing state</div>
-      </div>
-    </div>`;
-  document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// ── Alert based on status ──
-function getStatusAlert(data) {
-  const { status, expirationDate, isArmed } = data;
-  if (status === 'REVOKED') {
-    return `<div class="result-alert danger"><span class="result-alert-icon">⛔</span>
-      <div><strong>License Revoked</strong> — This guard's license has been revoked by the state regulatory agency. They are not legally permitted to work as a security guard. Contact the state agency for details.</div>
-    </div>`;
-  }
-  if (status === 'SUSPENDED') {
-    return `<div class="result-alert"><span class="result-alert-icon">⚠️</span>
-      <div><strong>License Suspended</strong> — This guard's license is currently suspended. Verify with the state agency before assigning to any post.</div>
-    </div>`;
-  }
-  if (status === 'EXPIRED') {
-    return `<div class="result-alert danger"><span class="result-alert-icon">⏰</span>
-      <div><strong>License Expired</strong> — This guard is not currently licensed. Deploying an unlicensed guard may violate state law and your PPO license terms. Require immediate renewal before assignment.</div>
-    </div>`;
-  }
-  if (status === 'ACTIVE' && expirationDate) {
-    const days = Math.ceil((new Date(expirationDate) - new Date()) / (1000*60*60*24));
-    if (days <= 30) {
-      return `<div class="result-alert"><span class="result-alert-icon">📅</span>
-        <div><strong>Expiring in ${days} days</strong> — This guard's license expires soon. Schedule renewal immediately to maintain continuous coverage.</div>
-      </div>`;
-    }
-    if (days <= 60) {
-      return `<div class="result-alert"><span class="result-alert-icon">📅</span>
-        <div>License expires in <strong>${days} days</strong>. Consider scheduling renewal to avoid a compliance gap.</div>
-      </div>`;
-    }
-  }
-  return '';
-}
-
-// ── Helpers ──
-function getExpiryInfo(expirationDate) {
-  if (!expirationDate) return { pct: 0, class: '', barClass: 'green', label: 'Unknown' };
-  const exp = new Date(expirationDate);
-  const now = new Date();
-  const daysLeft = Math.ceil((exp - now) / (1000*60*60*24));
-
-  if (daysLeft < 0) return { pct: 0, class: 'expired', barClass: 'red', label: 'Expired' };
-  if (daysLeft <= 30) return { pct: Math.min((daysLeft/730)*100, 5), class: 'expiring', barClass: 'red', label: `${daysLeft}d left` };
-  if (daysLeft <= 60) return { pct: Math.min((daysLeft/730)*100, 15), class: 'expiring', barClass: 'amber', label: `${daysLeft}d left` };
-  return { pct: Math.min((daysLeft/730)*100, 100), class: '', barClass: 'green', label: `${daysLeft}d left` };
-}
-
-function formatDate(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function formatDateTime(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-function escHtml(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function toggleStateDetails() {
-  // Could expand to show more info per state
-}
-
-// Animate loading steps
-let stepInterval;
-function animateSteps() {
-  let step = 0;
-  clearInterval(stepInterval);
-  stepInterval = setInterval(() => {
-    const steps = document.querySelectorAll('.loading-step');
-    steps.forEach((s, i) => s.classList.toggle('active', i === step % 3));
-    step++;
-  }, 400);
-}
-</script>
+<script src="/verify-script.js"></script>
 </body>
 </html>
