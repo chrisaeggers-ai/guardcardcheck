@@ -13,21 +13,23 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { verifyLicense, searchByName, verifyRoster, getSupportedStates } = require('../services/verificationEngine');
 const { getState } = require('../config/states');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, optionalAuth } = require('../middleware/auth');
 
 // ============================================================
 // Rate Limiters by Tier
 // ============================================================
+// Applies to unauthenticated visitors and free-plan users: 1 search per 24h by IP
 const freeLimiter = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000,  // 24 hours
+  windowMs: 24 * 60 * 60 * 1000,
   max: 1,
-  message: { error: 'Free tier is limited to 1 search per day. Upgrade to Starter for 25 searches/month.' },
+  message: { error: 'Free tier is limited to 1 search per day. Sign in or upgrade for more searches.' },
   keyGenerator: (req) => req.ip,
-  skip: (req) => req.user?.plan !== 'free',
+  // Skip limiter only when user is authenticated with a paid plan
+  skip: (req) => !!(req.user && req.user.plan && req.user.plan !== 'free'),
 });
 
 const starterLimiter = rateLimit({
-  windowMs: 30 * 24 * 60 * 60 * 1000,  // 30 days
+  windowMs: Math.min(30 * 24 * 60 * 60 * 1000, 2147483647), // cap for Node timer
   max: 25,
   message: { error: 'Monthly search limit reached. Upgrade to Business for 200 searches/month.' },
   keyGenerator: (req) => req.user?.id || req.ip,
@@ -80,7 +82,7 @@ router.get('/states/:code', (req, res) => {
  * 
  * Auth: Optional — free tier gets 1/day without auth, paid tiers require JWT
  */
-router.post('/verify', freeLimiter, starterLimiter, async (req, res) => {
+router.post('/verify', optionalAuth, freeLimiter, starterLimiter, async (req, res) => {
   const { stateCode, licenseNumber } = req.body;
 
   if (!stateCode || !licenseNumber) {
@@ -116,7 +118,7 @@ router.post('/verify', freeLimiter, starterLimiter, async (req, res) => {
  * POST /api/search-public
  * Public name search — single state, max 10 results, no auth required.
  */
-router.post('/search-public', freeLimiter, async (req, res) => {
+router.post('/search-public', optionalAuth, freeLimiter, async (req, res) => {
   const { firstName, lastName, stateCode } = req.body;
   if (!firstName || !lastName) return res.status(400).json({ error: 'firstName and lastName are required.' });
   if (!stateCode) return res.status(400).json({ error: 'stateCode is required.' });

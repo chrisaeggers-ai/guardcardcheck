@@ -590,12 +590,12 @@
       </div>
       <div class="logo-text">GuardCard<span>Check</span>.com</div>
     </a>
-    <ul class="nav-links">
+    <ul class="nav-links" id="nav-auth">
       <li><a href="#how">How It Works</a></li>
       <li><a href="#features">Features</a></li>
       <li><a href="/pricing">Pricing</a></li>
-      <li><a href="/login">Log In</a></li>
-      <li><a href="/register" class="nav-cta">Start Free</a></li>
+      <li><a href="/login" id="nav-login-link">Log In</a></li>
+      <li><a href="/register" class="nav-cta" id="nav-cta-link">Start Free</a></li>
     </ul>
   </div>
 </nav>
@@ -990,5 +990,28 @@
 
 
 <script src="/home-script.js"></script>
+<script>
+(function() {
+  var user = null;
+  try { user = JSON.parse(localStorage.getItem('gcc_user')); } catch {}
+  if (!user) return;
+  var loginLink = document.getElementById('nav-login-link');
+  var ctaLink = document.getElementById('nav-cta-link');
+  if (!loginLink || !ctaLink) return;
+  loginLink.textContent = (user.firstName || user.email || 'Dashboard').split(' ')[0];
+  loginLink.href = '/dashboard';
+  ctaLink.textContent = 'Log Out';
+  ctaLink.href = '#';
+  ctaLink.removeAttribute('class'); // remove nav-cta styling for logout
+  ctaLink.style.cssText = 'color:#374151;font-size:14px;font-weight:500;text-decoration:none;transition:color .2s';
+  ctaLink.onclick = function(e) {
+    e.preventDefault();
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(function() {});
+    localStorage.removeItem('gcc_token');
+    localStorage.removeItem('gcc_user');
+    window.location.reload();
+  };
+})();
+</script>
 </body>
 </html>

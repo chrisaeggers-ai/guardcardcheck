@@ -686,11 +686,11 @@ select.form-control { cursor: pointer; }
     <div class="nav-logo-icon">G</div>
     <div class="nav-logo-text">GuardCard<span>Check</span></div>
   </a>
-  <div class="nav-links">
+  <div class="nav-links" id="nav-auth">
     <a href="/pricing" class="nav-link">Pricing</a>
     <a href="/how-it-works" class="nav-link">How It Works</a>
-    <a href="/login" class="nav-link">Log In</a>
-    <a href="/register" class="nav-cta">Start Free</a>
+    <a href="/login" class="nav-link" id="nav-login-link">Log In</a>
+    <a href="/register" class="nav-cta" id="nav-cta-link">Start Free</a>
   </div>
 </nav>
 
@@ -838,13 +838,16 @@ select.form-control { cursor: pointer; }
   <!-- Result renders here -->
   <div id="result-area"></div>
 
-  <!-- Free limit upgrade nudge (shown after 1st search) -->
+  <!-- Free search used — shown after the first anonymous search -->
   <div class="limit-notice" id="upgrade-notice" style="display:none;">
     <div class="limit-notice-text">
-      <h3>You've used your free daily search</h3>
-      <p>Upgrade to Starter for 25 searches/month across all 10 states — starting at $29/month.</p>
+      <h3>You've used your free search</h3>
+      <p>Sign in or create a free account to search again. Upgrade for 25+ searches/month.</p>
     </div>
-    <a href="/pricing" class="limit-notice-btn">View Plans →</a>
+    <div style="display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap">
+      <a href="/login" class="limit-notice-btn" style="background:#0B1F3A;border:1px solid rgba(255,255,255,0.2)">Sign In</a>
+      <a href="/register" class="limit-notice-btn">Create Account →</a>
+    </div>
   </div>
 
   <!-- State Coverage Info -->

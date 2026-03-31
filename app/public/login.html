@@ -255,14 +255,13 @@ async function handleLogin(e) {
       return;
     }
 
-    // Store token
     localStorage.setItem('gcc_token', data.token);
     localStorage.setItem('gcc_user', JSON.stringify(data.user));
+    // Clear free-search gate so the signed-in user can search freely
+    localStorage.removeItem('gcc_free_search_used');
 
-    // Redirect
     const redirect = new URLSearchParams(window.location.search).get('redirect');
     window.location.href = redirect || '/dashboard';
-
   } catch (err) {
     banner.textContent = 'Network error. Please check your connection.';
     banner.classList.add('show');
@@ -272,11 +271,7 @@ async function handleLogin(e) {
   }
 }
 
-// If already logged in, redirect to dashboard
-(function() {
-  const token = localStorage.getItem('gcc_token');
-  if (token) window.location.href = '/dashboard';
-})();
+if (localStorage.getItem('gcc_token')) window.location.href = '/dashboard';
 </script>
 </body>
 </html>

@@ -278,7 +278,18 @@ body {
 let selectedPlan = 'free';
 let pendingBilling = 'monthly';
 
-// Check for plan pre-selection from /pricing page
+function selectPlan(planId) {
+  selectedPlan = planId;
+  document.querySelectorAll('.plan-radio').forEach(el => el.classList.remove('selected'));
+  const radio = document.getElementById('radio-' + planId);
+  if (radio) radio.classList.add('selected');
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = planId === 'free' ? 'Create Free Account' : 'Create Account & Pay';
+}
+window.selectPlan = selectPlan;
+
+selectPlan('free');
+
 (function checkPending() {
   const params = new URLSearchParams(window.location.search);
   const planParam = params.get('plan');
@@ -289,7 +300,6 @@ let pendingBilling = 'monthly';
     selectPlan(storedPlan);
     pendingBilling = billingParam;
 
-    // Update left panel
     const preview = document.getElementById('planPreview');
     const previewName = document.getElementById('previewName');
     const previewPrice = document.getElementById('previewPrice');
@@ -312,20 +322,10 @@ let pendingBilling = 'monthly';
     previewPrice.textContent = planPrices[storedPlan][billingParam] + ' · billed ' + billingParam;
     previewFeatures.innerHTML = planFeatures[storedPlan].map(f => `<div class="ppf">${f}</div>`).join('');
 
-    const btnText = storedPlan === 'free' ? 'Create Free Account' : `Create Account & Pay`;
-    document.getElementById('submitBtn').textContent = btnText;
+    document.getElementById('submitBtn').textContent =
+      storedPlan === 'free' ? 'Create Free Account' : 'Create Account & Pay';
   }
 })();
-
-function selectPlan(planId) {
-  selectedPlan = planId;
-  document.querySelectorAll('.plan-radio').forEach(el => el.classList.remove('selected'));
-  const radio = document.getElementById('radio-' + planId);
-  if (radio) radio.classList.add('selected');
-  const btn = document.getElementById('submitBtn');
-  btn.textContent = planId === 'free' ? 'Create Free Account' : 'Create Account & Pay';
-}
-selectPlan('free'); // default
 
 async function handleRegister(e) {
   e.preventDefault();
@@ -339,7 +339,6 @@ async function handleRegister(e) {
   const btn = document.getElementById('submitBtn');
   const banner = document.getElementById('errorBanner');
 
-  // Validate
   if (password.length < 8) {
     document.getElementById('passwordError').textContent = 'Password must be at least 8 characters.';
     document.getElementById('passwordError').classList.add('show');
@@ -352,6 +351,12 @@ async function handleRegister(e) {
   btn.disabled = true;
   btn.textContent = 'Creating account...';
 
+  const resetBtn = () => {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    btn.textContent = selectedPlan === 'free' ? 'Create Free Account' : 'Create Account & Pay';
+  };
+
   try {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
@@ -361,28 +366,25 @@ async function handleRegister(e) {
     });
 
     const data = await res.json();
-
     if (!res.ok) {
       banner.textContent = data.error || 'Registration failed. Please try again.';
       banner.classList.add('show');
-      btn.classList.remove('loading');
-      btn.disabled = false;
-      btn.textContent = selectedPlan === 'free' ? 'Create Free Account' : 'Create Account & Pay';
+      resetBtn();
       return;
     }
 
-    // Store auth
-    localStorage.setItem('gcc_token', data.token);
-    localStorage.setItem('gcc_user', JSON.stringify(data.user));
+    const token = data.token;
 
-    // If a paid plan was selected, go to checkout
+    localStorage.setItem('gcc_token', token);
+    localStorage.setItem('gcc_user', JSON.stringify(data.user));
+    localStorage.removeItem('gcc_free_search_used');
+
     if (selectedPlan !== 'free') {
       sessionStorage.setItem('pending_plan', selectedPlan);
       sessionStorage.setItem('pending_billing', pendingBilling);
-      // Call checkout API
       const checkoutRes = await fetch('/api/billing/checkout/' + selectedPlan, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.token },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ billing: pendingBilling }),
       });
       const checkoutData = await checkoutRes.json();
@@ -392,19 +394,14 @@ async function handleRegister(e) {
       }
     }
 
-    // Free plan — go to dashboard
     window.location.href = '/dashboard';
-
   } catch (err) {
     banner.textContent = 'Network error. Please check your connection.';
     banner.classList.add('show');
-    btn.classList.remove('loading');
-    btn.disabled = false;
-    btn.textContent = selectedPlan === 'free' ? 'Create Free Account' : 'Create Account & Pay';
+    resetBtn();
   }
 }
 
-// Input error clearing
 document.getElementById('password').addEventListener('input', () => {
   document.getElementById('passwordError').classList.remove('show');
   document.getElementById('password').classList.remove('error');
@@ -414,7 +411,6 @@ document.getElementById('email').addEventListener('input', () => {
   document.getElementById('email').classList.remove('error');
 });
 
-// Already logged in?
 if (localStorage.getItem('gcc_token')) window.location.href = '/dashboard';
 </script>
 </body>

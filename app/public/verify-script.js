@@ -18,6 +18,47 @@
   var vBtn = document.getElementById('verify-btn');
   var area = document.getElementById('result-area');
 
+  // ── Auth helpers ─────────────────────────────────────────────
+  var FREE_KEY = 'gcc_free_search_used';
+
+  function isLoggedIn() {
+    return !!localStorage.getItem('gcc_token');
+  }
+
+  function hasFreeSearchLeft() {
+    return !localStorage.getItem(FREE_KEY);
+  }
+
+  function markFreeSearchUsed() {
+    localStorage.setItem(FREE_KEY, '1');
+  }
+
+  // ── Nav: update based on auth state ─────────────────────────
+  (function updateNav() {
+    var user = null;
+    try { user = JSON.parse(localStorage.getItem('gcc_user')); } catch {}
+    if (!user) return;
+
+    var loginLink = document.getElementById('nav-login-link');
+    var ctaLink = document.getElementById('nav-cta-link');
+    if (!loginLink || !ctaLink) return;
+
+    loginLink.textContent = (user.firstName || user.email || 'Dashboard').split(' ')[0];
+    loginLink.href = '/dashboard';
+    ctaLink.textContent = 'Log Out';
+    ctaLink.href = '#';
+    ctaLink.onclick = function(e) {
+      e.preventDefault();
+      fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(function() {});
+      localStorage.removeItem('gcc_token');
+      localStorage.removeItem('gcc_user');
+      // Reset free search so signed-out user can't search again without signing in
+      localStorage.removeItem(FREE_KEY);
+      window.location.href = '/';
+    };
+  })();
+
+  // ── Placeholder update ───────────────────────────────────────
   function updPh() {
     var h = HINTS[stSel.value];
     if (h) { licIn.placeholder = h.ph; licLbl.textContent = h.label; }
@@ -25,7 +66,7 @@
   stSel.addEventListener('change', updPh);
   licIn.addEventListener('input', updPh);
 
-  // Tabs
+  // ── Tabs ─────────────────────────────────────────────────────
   function switchTab(t) {
     document.querySelectorAll('.search-tab').forEach(function(b, i) {
       b.classList.toggle('active', ['license','name','batch'][i] === t);
@@ -41,7 +82,7 @@
     });
   });
 
-  // State chips + state rows
+  // ── State chips + rows ───────────────────────────────────────
   function selectState(code) {
     stSel.value = code; updPh();
     var ns = document.getElementById('name-state-select');
@@ -57,15 +98,20 @@
     });
   });
 
-  // License form
+  // ── License form submit ──────────────────────────────────────
   document.getElementById('form-license').addEventListener('submit', function(e) {
     e.preventDefault();
     var sc = stSel.value, ln = licIn.value.trim();
     if (!sc || !ln) return;
+
+    if (!isLoggedIn() && !hasFreeSearchLeft()) {
+      showSignInGate();
+      return;
+    }
     doVerify(sc, ln);
   });
 
-  // Name form
+  // ── Name form submit ─────────────────────────────────────────
   var nBtn = document.querySelector('#form-name .btn-verify');
   document.getElementById('form-name').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -73,55 +119,125 @@
     var fn = document.getElementById('first-name').value.trim();
     var ln = document.getElementById('last-name').value.trim();
     if (!sc || !fn || !ln) return;
+
+    if (!isLoggedIn() && !hasFreeSearchLeft()) {
+      showSignInGate();
+      return;
+    }
     doNameSearch(sc, fn, ln);
   });
 
-  // ── License verify ──
+  // ── License verify ───────────────────────────────────────────
   async function doVerify(sc, ln) {
     vBtn.classList.add('loading');
     vBtn.querySelector('.btn-text').textContent = 'Verifying...';
     showLoading(sc, ln);
     try {
+      var headers = { 'Content-Type': 'application/json' };
+      var token = localStorage.getItem('gcc_token');
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
       var r = await fetch('/api/verify', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: headers, credentials: 'include',
         body: JSON.stringify({ stateCode: sc, licenseNumber: ln }),
       });
-      renderResult(await r.json());
+      var data = await r.json();
+
+      if (r.status === 429) {
+        // Server-side rate limit hit
+        if (!isLoggedIn()) {
+          markFreeSearchUsed();
+          showSignInGate();
+        } else {
+          renderError(data.error || 'Search limit reached. Upgrade your plan for more searches.');
+        }
+        return;
+      }
+
+      renderResult(data);
+
+      // After first free search, show sign-in nudge
+      if (!isLoggedIn()) {
+        markFreeSearchUsed();
+        showUpgradeNotice();
+      }
     } catch (e) {
-      renderError('Network error \u2014 could not reach the server.');
+      renderError('Network error — could not reach the server.');
     } finally {
       vBtn.classList.remove('loading');
       vBtn.querySelector('.btn-text').textContent = '\uD83D\uDD0D Verify License';
     }
   }
 
-  // ── Name search ──
+  // ── Name search ──────────────────────────────────────────────
   async function doNameSearch(sc, fn, ln) {
     if (nBtn) { nBtn.classList.add('loading'); nBtn.querySelector('.btn-text').textContent = 'Searching...'; }
     var SN = {CA:'California',FL:'Florida',TX:'Texas',IL:'Illinois',VA:'Virginia',NV:'Nevada',OR:'Oregon',WA:'Washington',AZ:'Arizona',NC:'North Carolina'};
     area.innerHTML = '<div class="loading-card" style="margin-bottom:32px"><div class="loading-spinner"></div><div class="loading-state-name">Searching ' + (SN[sc]||sc) + ' for ' + esc(fn) + ' ' + esc(ln) + '</div></div>';
     area.scrollIntoView({ behavior: 'smooth', block: 'start' });
     try {
+      var headers = { 'Content-Type': 'application/json' };
+      var token = localStorage.getItem('gcc_token');
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
       var r = await fetch('/api/search-public', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: headers, credentials: 'include',
         body: JSON.stringify({ stateCode: sc, firstName: fn, lastName: ln }),
       });
       var d = await r.json();
+
+      if (r.status === 429) {
+        if (!isLoggedIn()) {
+          markFreeSearchUsed();
+          showSignInGate();
+        } else {
+          renderError(d.error || 'Search limit reached.');
+        }
+        return;
+      }
+
       if (d.error) { renderError(d.error); return; }
       renderNameResults(d.results || [], fn, ln, sc);
+
+      if (!isLoggedIn()) {
+        markFreeSearchUsed();
+        showUpgradeNotice();
+      }
     } catch (e) {
-      renderError('Network error \u2014 could not reach the server.');
+      renderError('Network error — could not reach the server.');
     } finally {
       if (nBtn) { nBtn.classList.remove('loading'); nBtn.querySelector('.btn-text').textContent = '\uD83D\uDD0D Search'; }
     }
   }
 
+  // ── Loading ──────────────────────────────────────────────────
   function showLoading(sc, ln) {
     var SN = {CA:'California',FL:'Florida',TX:'Texas',IL:'Illinois',VA:'Virginia',NV:'Nevada',OR:'Oregon',WA:'Washington',AZ:'Arizona',NC:'North Carolina'};
     area.innerHTML = '<div class="loading-card" style="margin-bottom:32px"><div class="loading-spinner"></div><div class="loading-state-name">Querying ' + (SN[sc]||sc) + '</div><div class="loading-sub">' + esc(ln) + '</div></div>';
     area.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // ── Sign-in gate (called when free search is exhausted) ──────
+  function showSignInGate() {
+    area.innerHTML =
+      '<div class="not-found-card" style="margin-bottom:32px">' +
+      '<div class="not-found-icon">\uD83D\uDD12</div>' +
+      '<div class="not-found-title">Sign in to continue</div>' +
+      '<div class="not-found-sub">You\'ve used your free search. Sign in or create a free account to search again.</div>' +
+      '<div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap">' +
+      '<a href="/login" style="padding:10px 24px;background:#1A56DB;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;font-family:inherit">Sign In</a>' +
+      '<a href="/register" style="padding:10px 24px;background:white;color:#1A56DB;border:2px solid #1A56DB;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;font-family:inherit">Create Free Account</a>' +
+      '</div></div>';
+    area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── Show upgrade/sign-in notice below result ─────────────────
+  function showUpgradeNotice() {
+    var notice = document.getElementById('upgrade-notice');
+    if (notice) notice.style.display = '';
+  }
+
+  // ── Result renderers ─────────────────────────────────────────
   function renderResult(d) {
     if (d && d.error && !d.status) { renderError(d.error); return; }
     if (d && d.status === 'VERIFICATION_ERROR') { renderError(d.error || 'Verification failed.'); return; }
@@ -143,7 +259,7 @@
         fld('Verified', fmtDT(d.verifiedAt), '', 'font-size:13px') +
       '</div>' +
       (d.expirationDate ? '<div class="expiry-bar-wrapper"><div class="expiry-bar-label"><span>License Validity</span><span>' + ei.label + '</span></div><div class="expiry-bar"><div class="expiry-bar-fill ' + ei.bar + '" style="width:' + ei.pct + '%"></div></div></div>' : '') +
-      alert(d) +
+      alertBanner(d) +
       '</div></div></div>';
     area.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -175,7 +291,7 @@
     area.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function alert(d) {
+  function alertBanner(d) {
     if (d.status === 'REVOKED') return '<div class="result-alert danger"><span class="result-alert-icon">\u26D4</span><div><strong>License Revoked</strong></div></div>';
     if (d.status === 'SUSPENDED') return '<div class="result-alert"><span class="result-alert-icon">\u26A0</span><div><strong>License Suspended</strong></div></div>';
     if (d.status === 'EXPIRED') return '<div class="result-alert danger"><span class="result-alert-icon">\u23F0</span><div><strong>License Expired</strong></div></div>';

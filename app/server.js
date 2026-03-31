@@ -50,22 +50,34 @@ const PUBLIC = path.join(__dirname, 'public');
 // Database (optional for local dev)
 // - Default is DISABLE_DB=true in `npm run dev` (see package.json)
 // - Enable DB by running with DISABLE_DB=false and DATABASE_URL set
+// - Supabase/Neon/etc. require SSL even in development; without it connections often time out.
 // ─────────────────────────────────────────────────────────────
 const dbEnabled = !!process.env.DATABASE_URL && process.env.DISABLE_DB !== 'true';
+
+function pgSslForUrl(connectionString) {
+  if (process.env.DATABASE_SSL === 'false') return false;
+  if (process.env.DATABASE_SSL === 'true') return { rejectUnauthorized: false };
+  if (!connectionString) return false;
+  // Local Postgres — no TLS
+  if (/localhost|127\.0\.0\.1|unix:\/\//i.test(connectionString)) {
+    return false;
+  }
+  // Any remote host (Supabase, Neon, RDS, etc.) requires TLS; without it pg often hangs until timeout.
+  return { rejectUnauthorized: false };
+}
+
 let db;
+let pool;
 
 if (dbEnabled) {
-  db = new Pool({
+  pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: pgSslForUrl(process.env.DATABASE_URL),
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: Number(process.env.PG_CONNECT_TIMEOUT_MS) || 15000,
   });
-
-  db.connect()
-    .then(c => { c.release(); console.log('✅ PostgreSQL connected'); })
-    .catch(err => { console.error('❌ PostgreSQL connection failed:', err.message); process.exit(1); });
+  db = pool;
 } else {
   db = {
     async query() {
@@ -99,7 +111,7 @@ app.use(helmet({
       styleSrc:    ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc:     ["'self'", "https://fonts.gstatic.com"],
       frameSrc:    ["https://js.stripe.com", "https://hooks.stripe.com"],
-      connectSrc:  ["'self'", "https://api.stripe.com"],
+      connectSrc:  ["'self'", "https://api.stripe.com", "https://*.supabase.co"],
       imgSrc:      ["'self'", "data:", "https:"],
     },
   },
@@ -280,8 +292,29 @@ cron.schedule('0 3 1 * *', async () => {
 // ─────────────────────────────────────────────────────────────
 // Start + graceful shutdown (Ctrl+C releases port)
 // ─────────────────────────────────────────────────────────────
-const server = app.listen(PORT, () => {
-  console.log(`
+let server;
+
+async function start() {
+  if (dbEnabled) {
+    try {
+      const c = await pool.connect();
+      c.release();
+      console.log('✅ PostgreSQL connected');
+    } catch (err) {
+      console.error('❌ PostgreSQL connection failed:', err.message);
+      console.error('   → Check DATABASE_URL (host, password, port).');
+      console.error('   → Supabase/Neon: use the URI from the dashboard; SSL is enabled automatically for *.supabase.co.');
+      console.error('   → Local Postgres: use postgresql://USER:PASS@127.0.0.1:5432/DB (no SSL).');
+      console.error('   → Optional: PG_CONNECT_TIMEOUT_MS=30000  DATABASE_SSL=true|false');
+      process.exit(1);
+    }
+  }
+
+  server = app.listen(PORT, () => {
+    const dbLine = !dbEnabled
+      ? '⚠️  disabled (DISABLE_DB or no DATABASE_URL)'
+      : '✅ connected';
+    console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║         GuardCardCheck.com  v2.0  — Production           ║
 ╠══════════════════════════════════════════════════════════╣
@@ -291,14 +324,21 @@ const server = app.listen(PORT, () => {
 ║  ❤️   http://localhost:${String(PORT).padEnd(4)}/health                   ║
 ╠══════════════════════════════════════════════════════════╣
 ║  States: CA · FL · TX · IL · VA · NV · OR · WA · AZ · NC║
-║  DB:     ${(process.env.DATABASE_URL ? '✅ Connected' : '⚠️  No DATABASE_URL').padEnd(47)}║
+║  DB:     ${dbLine.padEnd(47)}║
 ║  Stripe: ${(process.env.STRIPE_SECRET_KEY ? '✅ Configured' : '⚠️  No STRIPE_SECRET_KEY').padEnd(47)}║
 ║  DCA:    ${(process.env.DCA_APP_ID && (process.env.DCA_APP_KEY || process.env.DCA_API_KEY) ? '✅ iServices (CA)' : '⏳  Set DCA_APP_ID + DCA_APP_KEY').padEnd(47)}║
 ╚══════════════════════════════════════════════════════════╝`);
+  });
+}
+
+start().catch((e) => {
+  console.error(e);
+  process.exit(1);
 });
 
 function shutdown() {
   console.log('\nShutting down...');
+  if (!server) return process.exit(0);
   server.close(() => {
     console.log('Server closed. Port', PORT, 'released.');
     process.exit(0);

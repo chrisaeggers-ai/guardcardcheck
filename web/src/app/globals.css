@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0b1f3a;
+  --accent: #1a56db;
+}
+
+body {
+  @apply bg-[#0b1f3a] text-slate-100 antialiased;
+}

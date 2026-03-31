@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS organizations (
 CREATE TABLE IF NOT EXISTS users (
   id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email                   VARCHAR(255) UNIQUE NOT NULL,
-  password_hash           TEXT NOT NULL,
+  password_hash           TEXT,
+  supabase_user_id        UUID UNIQUE,
   first_name              VARCHAR(100),
   last_name               VARCHAR(100),
   organization_id         UUID REFERENCES organizations(id),
@@ -51,10 +52,12 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_at           TIMESTAMPTZ,
   
   created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT users_password_or_supabase CHECK (password_hash IS NOT NULL OR supabase_user_id IS NOT NULL)
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_supabase ON users(supabase_user_id);
 CREATE INDEX IF NOT EXISTS idx_users_stripe_customer ON users(stripe_customer_id);
 CREATE INDEX IF NOT EXISTS idx_users_org ON users(organization_id);
 
