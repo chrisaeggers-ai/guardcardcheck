@@ -31,7 +31,7 @@ type AddonFromApi = {
 
 /** Marketing copy aligned with product positioning */
 const FEATURES: Record<string, string[]> = {
-  free: ['1 search/day', '10 states', 'No roster', 'No API'],
+  free: ['1 search/day', '3 states (CA, FL, TX)', 'No roster', 'No API'],
   starter: ['25 searches/month', '25 guard roster', 'Name search', 'Email alerts', '2 users'],
   business: ['200 searches/month', '200 guard roster', 'Batch verify', 'CSV export', '10 users'],
   enterprise: [

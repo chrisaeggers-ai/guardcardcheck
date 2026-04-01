@@ -6,7 +6,7 @@ import { HomeQuickVerify } from '@/app/home-quick-verify';
 export const metadata: Metadata = {
   title: 'GuardCardCheck — Guard license verification',
   description:
-    'Verify guard cards and firearm permits in real time across 10 states. BSIS checks, roster uploads, and compliance alerts for PPOs.',
+    'Verify guard cards and firearm permits in real time for California, Florida, and Texas. BSIS and FDACS checks, roster uploads, and compliance alerts for PPOs.',
 };
 
 const NAVY = '#0B1F3A';

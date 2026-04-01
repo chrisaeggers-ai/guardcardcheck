@@ -6,12 +6,19 @@ export async function GET() {
   const hasServiceRole = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
   const hasStripe = !!process.env.STRIPE_SECRET_KEY;
 
-  return NextResponse.json({
-    ok: true,
-    env: {
-      supabasePublic: hasSupabase,
-      supabaseServiceRole: hasServiceRole,
-      stripeSecret: hasStripe,
+  return NextResponse.json(
+    {
+      ok: true,
+      env: {
+        supabasePublic: hasSupabase,
+        supabaseServiceRole: hasServiceRole,
+        stripeSecret: hasStripe,
+      },
     },
-  });
+    {
+      headers: {
+        'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+      },
+    }
+  );
 }

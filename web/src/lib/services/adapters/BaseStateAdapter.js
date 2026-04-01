@@ -56,6 +56,10 @@ class BaseStateAdapter {
       licenseNumber: rawData.licenseNumber || null,
       licenseType: rawData.licenseType || null,      // e.g. 'Guard Card', 'Class D', 'PERC'
       licenseTypeCode: rawData.licenseTypeCode || null, // e.g. 'G', 'D', 'PERC'
+      /** Full sentence: guard vs PPO vs firearm, etc. (when adapter provides it) */
+      credentialSpecification: rawData.credentialSpecification || null,
+      /** Optional coarse bucket: guard_employee | company_ppo | firearm | pi | other */
+      credentialCategory: rawData.credentialCategory || null,
       holderName: rawData.holderName || null,
       status: this._normalizeStatus(rawData.status),  // ACTIVE | EXPIRED | REVOKED | SUSPENDED | NOT_FOUND
       issueDate: rawData.issueDate ? new Date(rawData.issueDate) : null,

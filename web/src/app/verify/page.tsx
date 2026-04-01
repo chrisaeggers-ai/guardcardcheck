@@ -1,7 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState, Suspense, type CSSProperties } from 'react';
+import { rateLimitMessage } from '@/lib/api-response-helpers';
+import { VerificationLoadingPanel } from '@/components/verification-loading-panel';
 
 const NAVY = '#0B1F3A';
 const BLUE = '#1A56DB';
@@ -9,26 +12,32 @@ const GREEN = '#059669';
 const RED = '#DC2626';
 const AMBER = '#D97706';
 
-const STATE_CODES = ['CA', 'FL', 'TX', 'IL', 'VA', 'NV', 'OR', 'WA', 'AZ', 'NC'] as const;
+const STATE_CODES = ['CA', 'FL', 'TX'] as const;
 type StateCode = (typeof STATE_CODES)[number];
+
+/** Official portals for name search when in-app automation is not available or secondary. */
+const FL_FDACS_INDIVIDUAL_URL = 'https://licensing.fdacs.gov/access/individual.aspx';
+const TX_TOPS_SEARCH_URL = 'https://tops.portal.texas.gov/psp-self-service/search/index';
 
 const LICENSE_PLACEHOLDERS: Record<StateCode, string> = {
   CA: 'e.g. 1441140 or G1234567',
-  FL: 'e.g. D1234567',
-  TX: 'e.g. 1234567',
-  IL: 'e.g. 129-012345',
-  VA: 'e.g. 123456',
-  NV: 'e.g. WC123456',
-  OR: 'e.g. 12345',
-  WA: 'e.g. SG123456789',
-  AZ: 'e.g. 123456789',
-  NC: 'e.g. 12345678',
+  FL: 'e.g. D 1234567 or G 3106934',
+  TX: 'e.g. 230774 (TOPS person ID, digits only)',
 };
 
 type AccessLabel = 'Official API' | 'Portal scrape' | 'Bulk records';
 
 type CoverageState = {
   code: StateCode;
+  name: string;
+  agency: string;
+  access: AccessLabel;
+  tags: { label: string; variant: 'unarmed' | 'armed' | 'company' }[];
+};
+
+/** Planned jurisdictions — same detail shape as live coverage, shown in “Coming soon”. */
+type ComingSoonCoverage = {
+  code: string;
   name: string;
   agency: string;
   access: AccessLabel;
@@ -51,7 +60,7 @@ const COVERAGE: CoverageState[] = [
     code: 'FL',
     name: 'Florida',
     agency: 'Division of Licensing (FDACS)',
-    access: 'Bulk records',
+    access: 'Portal scrape',
     tags: [
       { label: 'Class D', variant: 'unarmed' },
       { label: 'Class G', variant: 'armed' },
@@ -69,6 +78,9 @@ const COVERAGE: CoverageState[] = [
       { label: 'Class B company', variant: 'company' },
     ],
   },
+];
+
+const COVERAGE_COMING_SOON: ComingSoonCoverage[] = [
   {
     code: 'IL',
     name: 'Illinois',
@@ -153,6 +165,10 @@ interface VerificationResult {
   stateName?: string;
   licenseNumber?: string | null;
   licenseType?: string | null;
+  /** Full BSIS-style description (guard vs PPO vs firearm), when API provides it */
+  credentialSpecification?: string | null;
+  /** e.g. guard_employee | company_ppo | firearm | pi */
+  credentialCategory?: string | null;
   holderName?: string | null;
   status: string;
   issueDate?: string | null;
@@ -161,6 +177,108 @@ interface VerificationResult {
   error?: string;
   agencyName?: string | null;
   fromCache?: boolean;
+}
+
+/** Response from /api/florida-license-lookup */
+interface FloridaApiRecord {
+  name: string | null;
+  license_number: string | null;
+  license_type: string;
+  status: string | null;
+  expiration_date: string | null;
+}
+
+interface FloridaApiResponse {
+  ok: boolean;
+  cached?: boolean;
+  results?: FloridaApiRecord[];
+  error?: string;
+  message?: string;
+}
+
+/** Response from /api/texas-license-lookup */
+interface TexasApiRecord {
+  name: string;
+  license_type: string;
+  section: string;
+  issued_on: string | null;
+  expiration_date: string | null;
+  status: string | null;
+}
+
+interface TexasApiResponse {
+  ok: boolean;
+  cached?: boolean;
+  results?: TexasApiRecord[];
+  error?: string;
+  message?: string;
+}
+
+function normalizeFloridaStatus(raw: string): string {
+  const s = raw.toUpperCase();
+  if (s.includes('DENIED') || s.includes('REVOK')) return 'REVOKED';
+  if (s.includes('EXPIRED')) return 'EXPIRED';
+  if (s.includes('SUSPEND')) return 'SUSPENDED';
+  if (s.includes('REVIEW') || s.includes('PENDING') || s.includes('INCOMPLETE')) return 'PENDING';
+  if (s.includes('ISSUED') || s.includes('ACTIVE') || s.includes('VALID') || s.includes('CLEAR')) return 'ACTIVE';
+  return 'UNKNOWN';
+}
+
+function floridaLicenseTypeLabel(code: string): string {
+  const c = (code || '').toUpperCase();
+  if (c === 'G') return 'Class G — Statewide Firearms';
+  if (c === 'D') return 'Class D — Security Officer';
+  return code ? `Class ${code}` : 'Florida license';
+}
+
+function mapFloridaRecordsToVerification(
+  rows: FloridaApiRecord[],
+  fromCache: boolean
+): VerificationResult[] {
+  return rows.map((row) => ({
+    stateCode: 'FL',
+    stateName: 'Florida',
+    licenseNumber: row.license_number,
+    licenseType: floridaLicenseTypeLabel(row.license_type),
+    holderName: row.name,
+    status: normalizeFloridaStatus(row.status || ''),
+    issueDate: null,
+    expirationDate: row.expiration_date ?? null,
+    isArmed: row.license_type?.toUpperCase() === 'G',
+    agencyName: 'Division of Licensing (FDACS)',
+    fromCache,
+  }));
+}
+
+function normalizeTexasStatus(raw: string): string {
+  const s = (raw || '').toUpperCase();
+  if (s.includes('REGISTERED') || s.includes('COMPLETE')) return 'ACTIVE';
+  if (s.includes('NOT REGISTERED') || s.includes('INCOMPLETE')) return 'EXPIRED';
+  if (s.includes('REVOK')) return 'REVOKED';
+  if (s.includes('SUSPEND')) return 'SUSPENDED';
+  if (s.includes('PENDING')) return 'PENDING';
+  return raw || 'UNKNOWN';
+}
+
+function mapTexasRecordsToVerification(
+  rows: TexasApiRecord[],
+  fromCache: boolean
+): VerificationResult[] {
+  return rows.map((row) => ({
+    stateCode: 'TX',
+    stateName: 'Texas',
+    licenseNumber: null,
+    licenseType: `${row.license_type}${row.section ? ` (${row.section})` : ''}`,
+    holderName: row.name,
+    status: normalizeTexasStatus(row.status || ''),
+    issueDate: row.issued_on ?? null,
+    expirationDate: row.expiration_date ?? null,
+    isArmed: /armed|commissioned|firearm|protection officer/i.test(
+      `${row.license_type} ${row.section}`
+    ),
+    agencyName: 'Private Security Bureau (DPS)',
+    fromCache,
+  }));
 }
 
 function parseDate(value: string | null | undefined): Date | null {
@@ -222,6 +340,19 @@ function tagChipClass(variant: 'unarmed' | 'armed' | 'company'): string {
   return 'bg-slate-500/25 text-slate-300 ring-1 ring-slate-500/40';
 }
 
+function credentialCategoryLabel(cat: string | null | undefined): string | null {
+  if (!cat) return null;
+  const map: Record<string, string> = {
+    guard_employee: 'Employee guard registration',
+    company_ppo: 'PPO company license',
+    firearm: 'Firearm credential',
+    pi: 'Private investigator',
+    company_other: 'Company license',
+    other: 'Credential',
+  };
+  return map[cat] || null;
+}
+
 function ResultCard({ row }: { row: VerificationResult }) {
   const issue = parseDate(row.issueDate ?? undefined);
   const exp = parseDate(row.expirationDate ?? undefined);
@@ -233,19 +364,8 @@ function ResultCard({ row }: { row: VerificationResult }) {
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-lg font-semibold text-white">{row.holderName || 'Unknown holder'}</p>
-          <p className="mt-1 text-sm text-slate-400">
-            {row.licenseType || 'License'} {row.licenseNumber ? `· ${row.licenseNumber}` : ''}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">
-            {row.stateCode}
-            {row.stateName ? ` · ${row.stateName}` : ''}
-            {row.agencyName ? ` · ${row.agencyName}` : ''}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+      <div>
+        <div className="flex items-center gap-2.5">
           <StatusBadge status={row.status} />
           {row.isArmed ? (
             <span
@@ -256,6 +376,25 @@ function ResultCard({ row }: { row: VerificationResult }) {
             </span>
           ) : null}
         </div>
+        <p className="mt-3 text-lg font-semibold text-white">{row.holderName || 'Unknown holder'}</p>
+        {credentialCategoryLabel(row.credentialCategory) ? (
+          <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            {credentialCategoryLabel(row.credentialCategory)}
+          </p>
+        ) : null}
+        <p className={`text-sm text-slate-300 ${credentialCategoryLabel(row.credentialCategory) ? 'mt-1' : 'mt-2'}`}>
+          {row.credentialSpecification || row.licenseType || 'License'}
+        </p>
+        {row.licenseNumber ? (
+          <p className="mt-1 text-sm text-slate-400">
+            <span className="text-slate-500">License #</span> {row.licenseNumber}
+          </p>
+        ) : null}
+        <p className="mt-1 text-xs text-slate-500">
+          {row.stateCode}
+          {row.stateName ? ` · ${row.stateName}` : ''}
+          {row.agencyName ? ` · ${row.agencyName}` : ''}
+        </p>
       </div>
 
       <dl className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -312,20 +451,39 @@ function ResultCard({ row }: { row: VerificationResult }) {
   );
 }
 
-function Spinner() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-400">
-      <div
-        className="h-10 w-10 animate-spin rounded-full border-2 border-slate-600 border-t-transparent"
-        style={{ borderTopColor: BLUE }}
-        aria-hidden
-      />
-      <p className="text-sm">Checking license records…</p>
-    </div>
-  );
+function verificationLoadingCopy(stateCode: StateCode, nameSearch: boolean) {
+  if (stateCode === 'FL') {
+    return nameSearch
+      ? {
+          title: 'Searching Florida FDACS',
+          subtitle: 'The official portal may take 20–60 seconds to return results.',
+        }
+      : {
+          title: 'Checking Florida FDACS',
+          subtitle: 'Opening the licensing portal — usually 10–35 seconds.',
+        };
+  }
+  if (stateCode === 'TX') {
+    return {
+      title: 'Loading Texas TOPS',
+      subtitle: nameSearch
+        ? 'Connecting to the state registry…'
+        : 'Fetching your TOPS record…',
+    };
+  }
+  return nameSearch
+    ? {
+        title: 'Searching California BSIS',
+        subtitle: 'The state name registry can take 15–40 seconds — please keep this page open.',
+      }
+    : {
+        title: 'Verifying California license',
+        subtitle: 'Contacting BreEZe (Department of Consumer Affairs)…',
+      };
 }
 
-export default function VerifyPage() {
+function VerifyPageContent() {
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<'license' | 'name' | 'roster'>('license');
   const [stateCode, setStateCode] = useState<StateCode>('CA');
   const [licenseNumber, setLicenseNumber] = useState('');
@@ -339,6 +497,22 @@ export default function VerifyPage() {
 
   const placeholder = useMemo(() => LICENSE_PLACEHOLDERS[stateCode], [stateCode]);
 
+  useEffect(() => {
+    const st = searchParams.get('state');
+    if (st && STATE_CODES.includes(st as StateCode)) {
+      setStateCode(st as StateCode);
+    }
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'name') setTab('name');
+    if (tabParam === 'license') setTab('license');
+    const q = searchParams.get('q');
+    if (q) setLicenseNumber(q);
+    const fn = searchParams.get('fn') ?? searchParams.get('firstName');
+    const ln = searchParams.get('ln') ?? searchParams.get('lastName');
+    if (fn) setFirstName(fn);
+    if (ln) setLastName(ln);
+  }, [searchParams]);
+
   async function onVerifyLicense(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -346,6 +520,88 @@ export default function VerifyPage() {
     setLoading(true);
     setVerifyResult(null);
     try {
+      if (stateCode === 'FL') {
+        const res = await fetch('/api/florida-license-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ licenseNumber: licenseNumber.trim() }),
+        });
+        const data = (await res.json().catch(() => ({}))) as FloridaApiResponse;
+        const rl = rateLimitMessage(res, data);
+        if (rl) {
+          setError(rl);
+          return;
+        }
+        if (!data.ok) {
+          if (data.error === 'NO_RESULTS') {
+            setVerifyResult({
+              status: 'NOT_FOUND',
+              stateCode: 'FL',
+              stateName: 'Florida',
+              licenseNumber: licenseNumber.trim(),
+              agencyName: 'Division of Licensing (FDACS)',
+            });
+            return;
+          }
+          setError(typeof data.message === 'string' ? data.message : 'Florida lookup failed.');
+          return;
+        }
+        const rows = mapFloridaRecordsToVerification(data.results ?? [], Boolean(data.cached));
+        if (rows.length === 0) {
+          setVerifyResult({
+            status: 'NOT_FOUND',
+            stateCode: 'FL',
+            stateName: 'Florida',
+            licenseNumber: licenseNumber.trim(),
+            agencyName: 'Division of Licensing (FDACS)',
+          });
+        } else {
+          setVerifyResult(rows[0]!);
+        }
+        return;
+      }
+
+      if (stateCode === 'TX') {
+        const res = await fetch('/api/texas-license-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: licenseNumber.trim() }),
+        });
+        const data = (await res.json().catch(() => ({}))) as TexasApiResponse;
+        const rl = rateLimitMessage(res, data);
+        if (rl) {
+          setError(rl);
+          return;
+        }
+        if (!data.ok) {
+          if (data.error === 'NO_RESULTS') {
+            setVerifyResult({
+              status: 'NOT_FOUND',
+              stateCode: 'TX',
+              stateName: 'Texas',
+              licenseNumber: licenseNumber.trim(),
+              agencyName: 'Private Security Bureau (DPS)',
+            });
+            return;
+          }
+          setError(typeof data.message === 'string' ? data.message : 'Texas lookup failed.');
+          return;
+        }
+        const rows = mapTexasRecordsToVerification(data.results ?? [], Boolean(data.cached));
+        if (rows.length === 0) {
+          setVerifyResult({
+            status: 'NOT_FOUND',
+            stateCode: 'TX',
+            stateName: 'Texas',
+            licenseNumber: licenseNumber.trim(),
+            agencyName: 'Private Security Bureau (DPS)',
+          });
+        } else {
+          setVerifyResult(rows[0]!);
+        }
+        return;
+      }
+
       const res = await fetch('/api/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -372,6 +628,34 @@ export default function VerifyPage() {
     setLoading(true);
     setSearchResults(null);
     try {
+      if (stateCode === 'FL') {
+        const res = await fetch('/api/florida-license-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+          }),
+        });
+        const data = (await res.json().catch(() => ({}))) as FloridaApiResponse;
+        const rl = rateLimitMessage(res, data);
+        if (rl) {
+          setError(rl);
+          return;
+        }
+        if (!data.ok) {
+          if (data.error === 'NO_RESULTS') {
+            setSearchResults([]);
+            return;
+          }
+          setError(typeof data.message === 'string' ? data.message : 'Florida search failed.');
+          return;
+        }
+        const list = mapFloridaRecordsToVerification(data.results ?? [], Boolean(data.cached));
+        setSearchResults(list);
+        return;
+      }
+
       const res = await fetch('/api/search-public', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -446,7 +730,7 @@ export default function VerifyPage() {
           <p className="text-center text-sm font-medium uppercase tracking-[0.2em] text-slate-400">GuardCardCheck.com</p>
           <h1 className="mt-3 text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">Guard license verification</h1>
           <p className="mx-auto mt-3 max-w-2xl text-center text-slate-300">
-            Verify security guard credentials across ten states — by license number, by name, or upload a roster from your dashboard.
+            Verify security guard credentials for California, Florida, and Texas — by license number, by name (where supported), or upload a roster from your dashboard.
           </p>
 
           <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.06] p-1 shadow-2xl backdrop-blur">
@@ -485,7 +769,12 @@ export default function VerifyPage() {
                     <select
                       id="state-lic"
                       value={stateCode}
-                      onChange={(e) => setStateCode(e.target.value as StateCode)}
+                      onChange={(e) => {
+                        setStateCode(e.target.value as StateCode);
+                        setError(null);
+                        setVerifyResult(null);
+                        setSearchResults(null);
+                      }}
                       className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none ring-[#1A56DB] focus:ring-2"
                     >
                       {STATE_CODES.map((c) => (
@@ -495,9 +784,28 @@ export default function VerifyPage() {
                       ))}
                     </select>
                   </div>
+                  {stateCode === 'FL' ? (
+                    <p className="text-xs text-slate-400">
+                      Florida checks query the official FDACS portal directly and may take 10–30 seconds.
+                    </p>
+                  ) : null}
+                  {stateCode === 'TX' ? (
+                    <p className="text-xs text-slate-400">
+                      Enter the numeric <strong className="text-slate-300">TOPS person ID</strong> (from the licensee record URL). In-app name search is not available — use{' '}
+                      <a
+                        href={TX_TOPS_SEARCH_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#93C5FD] underline underline-offset-2 hover:text-white"
+                      >
+                        Texas TOPS
+                      </a>{' '}
+                      to search by name.
+                    </p>
+                  ) : null}
                   <div>
                     <label htmlFor="lic-num" className="block text-sm font-medium text-slate-300">
-                      License number
+                      {stateCode === 'TX' ? 'TOPS person ID' : 'License number'}
                     </label>
                     <input
                       id="lic-num"
@@ -519,59 +827,122 @@ export default function VerifyPage() {
               ) : null}
 
               {tab === 'name' ? (
-                <form onSubmit={onSearchName} className="space-y-4">
-                  <div>
-                    <label htmlFor="state-name" className="block text-sm font-medium text-slate-300">
-                      State
-                    </label>
-                    <select
-                      id="state-name"
-                      value={stateCode}
-                      onChange={(e) => setStateCode(e.target.value as StateCode)}
-                      className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:ring-2 focus:ring-[#1A56DB]"
+                stateCode === 'TX' ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="state-name-tx" className="block text-sm font-medium text-slate-300">
+                        State
+                      </label>
+                      <select
+                        id="state-name-tx"
+                        value={stateCode}
+                        onChange={(e) => {
+                          setStateCode(e.target.value as StateCode);
+                          setError(null);
+                          setVerifyResult(null);
+                          setSearchResults(null);
+                        }}
+                        className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:ring-2 focus:ring-[#1A56DB]"
+                      >
+                        {STATE_CODES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-5">
+                      <p className="text-sm text-slate-200">
+                        Texas name and business search runs on the official TOPS site behind a security check, so GuardCardCheck cannot run it for you here.
+                      </p>
+                      <p className="mt-3 text-xs text-slate-400">
+                        After you find someone, copy the numeric person ID from their record and use <strong className="text-slate-300">By License Number</strong> above to verify here.
+                      </p>
+                      <a
+                        href={TX_TOPS_SEARCH_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-5 flex w-full items-center justify-center rounded-lg py-3 text-sm font-semibold text-white transition hover:opacity-95"
+                        style={{ backgroundColor: BLUE }}
+                      >
+                        Open Texas TOPS search
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={onSearchName} className="space-y-4">
+                    <div>
+                      <label htmlFor="state-name" className="block text-sm font-medium text-slate-300">
+                        State
+                      </label>
+                      <select
+                        id="state-name"
+                        value={stateCode}
+                        onChange={(e) => {
+                          setStateCode(e.target.value as StateCode);
+                          setError(null);
+                          setVerifyResult(null);
+                          setSearchResults(null);
+                        }}
+                        className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:ring-2 focus:ring-[#1A56DB]"
+                      >
+                        {STATE_CODES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {stateCode === 'FL' ? (
+                      <p className="text-xs text-slate-400">
+                        Name search loads detail for the first several FDACS matches (often 20–60 seconds). You can also search on the{' '}
+                        <a
+                          href={FL_FDACS_INDIVIDUAL_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#93C5FD] underline underline-offset-2 hover:text-white"
+                        >
+                          official FDACS license lookup
+                        </a>
+                        .
+                      </p>
+                    ) : null}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="fn" className="block text-sm font-medium text-slate-300">
+                          First name
+                        </label>
+                        <input
+                          id="fn"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder="First name"
+                          className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#1A56DB]"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="ln" className="block text-sm font-medium text-slate-300">
+                          Last name
+                        </label>
+                        <input
+                          id="ln"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          placeholder="Last name"
+                          className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#1A56DB]"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={loading || !firstName.trim() || !lastName.trim()}
+                      className="w-full rounded-lg py-3 text-sm font-semibold text-white transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
+                      style={{ backgroundColor: BLUE }}
                     >
-                      {STATE_CODES.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="fn" className="block text-sm font-medium text-slate-300">
-                        First name
-                      </label>
-                      <input
-                        id="fn"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="First name"
-                        className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#1A56DB]"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="ln" className="block text-sm font-medium text-slate-300">
-                        Last name
-                      </label>
-                      <input
-                        id="ln"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Last name"
-                        className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#1A56DB]"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading || !firstName.trim() || !lastName.trim()}
-                    className="w-full rounded-lg py-3 text-sm font-semibold text-white transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
-                    style={{ backgroundColor: BLUE }}
-                  >
-                    Search
-                  </button>
-                </form>
+                      Search
+                    </button>
+                  </form>
+                )
               ) : null}
 
               {tab === 'roster' ? (
@@ -612,7 +983,15 @@ export default function VerifyPage() {
           {error ? (
             <div className="rounded-xl border border-red-500/40 bg-red-950/30 px-4 py-3 text-sm text-red-100">{error}</div>
           ) : null}
-          {loading ? <Spinner /> : null}
+          {loading ? (
+            <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-gradient-to-b from-slate-800/40 via-slate-900/50 to-slate-950/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+              <VerificationLoadingPanel
+                variant="dark"
+                accentColor={BLUE}
+                {...verificationLoadingCopy(stateCode, tab === 'name')}
+              />
+            </div>
+          ) : null}
           {!loading && !error && tab === 'license' ? renderLicenseOutcome() : null}
           {!loading && !error && tab === 'name' ? renderNameOutcome() : null}
           {!loading && !error && tab === 'roster' ? (
@@ -625,9 +1004,13 @@ export default function VerifyPage() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-center text-2xl font-bold text-white">State coverage</h2>
           <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-slate-400">
-            GuardCardCheck aggregates public regulatory data for ten jurisdictions — agency, credential mix, and how we access records.
+            Public regulatory data by jurisdiction — agency, planned access method, and credential mix.
           </p>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+          <p className="mt-10 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Available now
+          </p>
+          <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {COVERAGE.map((s) => (
               <div
                 key={s.code}
@@ -652,6 +1035,44 @@ export default function VerifyPage() {
               </div>
             ))}
           </div>
+
+          <p className="mt-14 text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Coming soon
+          </p>
+          <p className="mx-auto mt-2 max-w-xl text-center text-sm text-slate-500">
+            In-app verification for these states is on the roadmap. Details below match what we intend to support.
+          </p>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {COVERAGE_COMING_SOON.map((s) => (
+              <div
+                key={s.code}
+                className="relative rounded-2xl border border-white/5 bg-slate-950/40 p-5 opacity-90 shadow-lg ring-1 ring-white/5"
+              >
+                <span className="absolute right-4 top-4 rounded-full bg-slate-700/80 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-300">
+                  Soon
+                </span>
+                <div className="flex items-baseline justify-between gap-2 pr-16">
+                  <h3 className="text-lg font-semibold text-slate-200">
+                    <span className="text-slate-400">{s.code}</span> · {s.name}
+                  </h3>
+                </div>
+                <p className="mt-2 text-sm text-slate-500">{s.agency}</p>
+                <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-600">Access (planned)</p>
+                <p className="mt-1 text-sm text-slate-400">{s.access}</p>
+                <p className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-600">Credential tags</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {s.tags.map((t) => (
+                    <span
+                      key={t.label}
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium opacity-80 ${tagChipClass(t.variant)}`}
+                    >
+                      {t.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -659,5 +1080,27 @@ export default function VerifyPage() {
         © {new Date().getFullYear()} GuardCardCheck — verify before you deploy.
       </footer>
     </div>
+  );
+}
+
+function VerifyPageFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 shadow-2xl shadow-black/40">
+        <VerificationLoadingPanel
+          variant="dark"
+          title="Opening verify"
+          subtitle="Loading the secure verification form…"
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<VerifyPageFallback />}>
+      <VerifyPageContent />
+    </Suspense>
   );
 }

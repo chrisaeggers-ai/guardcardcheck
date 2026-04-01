@@ -1,11 +1,5 @@
 import type { Metadata } from 'next';
-import { Sora } from 'next/font/google';
 import './globals.css';
-
-const sora = Sora({
-  subsets: ['latin'],
-  variable: '--font-sora',
-});
 
 export const metadata: Metadata = {
   title: 'GuardCardCheck',
@@ -18,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={sora.variable}>
+    <html lang="en">
       <body className="min-h-screen font-sans antialiased">{children}</body>
     </html>
   );
