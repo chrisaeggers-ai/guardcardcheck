@@ -61,6 +61,64 @@ function setCache(key, data, ttlMs) {
   }
 }
 
+/** Match @/lib/florida-license-lookup `normalizeFloridaLicenseInput` for cache keys. */
+function normalizeFloridaLicenseKeyForCache(raw) {
+  const cleaned = String(raw).trim().toUpperCase().replace(/\s+/g, '');
+  const m = cleaned.match(/^([A-Z]{1,2})(\d{7})$/);
+  if (!m) return String(raw).trim().toUpperCase();
+  const [, prefix, digits] = m;
+  if (prefix.length === 1) return `${prefix} ${digits}`;
+  return `${prefix}${digits}`;
+}
+
+/**
+ * FDACS migrated the public form; the legacy axios adapter no longer matches the live markup.
+ * Manual verify uses Puppeteer — batch and /api/verify must use the same path.
+ */
+async function verifyFloridaWithPuppeteer(licenseNumber) {
+  const { lookupFloridaLicensesPuppeteer } = await import('@/lib/florida-license-lookup');
+  const licNorm = normalizeFloridaLicenseKeyForCache(licenseNumber);
+  const lookup = await lookupFloridaLicensesPuppeteer({ licenseNumber: licNorm });
+  const adapter = ADAPTERS.FL;
+  if (!lookup.ok) {
+    if (lookup.error === 'NO_RESULTS') {
+      return adapter.normalize({ status: 'NOT_FOUND', licenseNumber: licNorm });
+    }
+    return {
+      stateCode: 'FL',
+      stateName: adapter.state.name,
+      licenseNumber: licNorm,
+      licenseType: null,
+      licenseTypeCode: null,
+      holderName: null,
+      status: 'VERIFICATION_ERROR',
+      issueDate: null,
+      expirationDate: null,
+      isArmed: false,
+      companyName: null,
+      agencyName: adapter.state.agency.name,
+      portalUrl: adapter.state.access.portalUrl,
+      verifiedAt: new Date().toISOString(),
+      error: 'Unable to retrieve license status. Please try again.',
+      errorDetail: process.env.NODE_ENV === 'development' ? lookup.message : undefined,
+      retryAfter: 60,
+    };
+  }
+  const r = lookup.results[0];
+  const typeCode = (r.license_type || 'D').toString().toUpperCase();
+  return adapter.normalize({
+    licenseNumber: r.license_number || licNorm,
+    licenseType: adapter._getLicenseTypeName(typeCode),
+    licenseTypeCode: typeCode,
+    holderName: r.name || null,
+    status: r.status || null,
+    issueDate: null,
+    expirationDate: r.expiration_date ? new Date(r.expiration_date) : null,
+    isArmed: typeCode === 'G',
+    zipCode: r.zip_code || null,
+  });
+}
+
 // ============================================================
 // Verification Functions
 // ============================================================
@@ -88,18 +146,26 @@ async function verifyLicense(stateCode, licenseNumber, options = {}) {
     };
   }
 
-  const cacheKey = `${state}:${licenseNumber.trim().toUpperCase()}`;
-  
+  const cacheKey =
+    state === 'FL'
+      ? `FL:${normalizeFloridaLicenseKeyForCache(licenseNumber)}`
+      : `${state}:${licenseNumber.trim().toUpperCase()}`;
+
   if (useCache) {
     const cached = getCached(cacheKey);
     if (cached) return { ...cached, fromCache: true };
   }
 
   try {
-    const result = await adapter.verify(licenseNumber);
-    const ttl =
-      result && result.status === 'NOT_FOUND' ? CACHE_TTL_NOT_FOUND_MS : CACHE_TTL_MS;
-    setCache(cacheKey, result, ttl);
+    const result =
+      state === 'FL'
+        ? await verifyFloridaWithPuppeteer(licenseNumber)
+        : await adapter.verify(licenseNumber);
+    if (result.status !== 'VERIFICATION_ERROR') {
+      const ttl =
+        result && result.status === 'NOT_FOUND' ? CACHE_TTL_NOT_FOUND_MS : CACHE_TTL_MS;
+      setCache(cacheKey, result, ttl);
+    }
     return result;
   } catch (error) {
     console.error(`[${state}] Verification error for ${licenseNumber}:`, error.message);
@@ -164,31 +230,33 @@ async function searchByName(firstName, lastName, states = 'ALL') {
  * Used by Business/Enterprise tier customers uploading Excel rosters.
  * 
  * @param {Array<{stateCode: string, licenseNumber: string, guardName?: string}>} roster
+ * @param {{ afterEachVerify?: (result: object) => void | Promise<void> }} [hooks] — e.g. record usage per row
  * @returns {Promise<RosterVerificationResult>}
  */
-async function verifyRoster(roster) {
+async function verifyRoster(roster, hooks = {}) {
+  const { afterEachVerify } = hooks;
   const startTime = Date.now();
-  
-  // Process in batches of 10 to avoid overwhelming state portals
-  const BATCH_SIZE = 10;
+
+  // Sequential: FDACS/TOPS use Puppeteer + shared browser; parallel rows caused empty/wrong results.
   const results = [];
-  
-  for (let i = 0; i < roster.length; i += BATCH_SIZE) {
-    const batch = roster.slice(i, i + BATCH_SIZE);
-    const batchPromises = batch.map(async (guard) => {
-      const result = await verifyLicense(guard.stateCode, guard.licenseNumber);
-      return {
-        ...result,
-        rosterGuardName: guard.guardName,
-        rosterIndex: i + batch.indexOf(guard),
-      };
+
+  for (let i = 0; i < roster.length; i++) {
+    const guard = roster[i];
+    const result = await verifyLicense(guard.stateCode, guard.licenseNumber);
+    if (typeof afterEachVerify === 'function') {
+      try {
+        await afterEachVerify(result);
+      } catch (e) {
+        console.error('[verifyRoster] afterEachVerify:', e?.message || e);
+      }
+    }
+    results.push({
+      ...result,
+      rosterGuardName: guard.guardName,
+      rosterIndex: i,
     });
-    const batchResults = await Promise.allSettled(batchPromises);
-    results.push(...batchResults.filter(r => r.status === 'fulfilled').map(r => r.value));
-    
-    // Brief pause between batches to be respectful to state servers
-    if (i + BATCH_SIZE < roster.length) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+    if (i + 1 < roster.length) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
   }
 
@@ -237,7 +305,11 @@ function getSupportedStates() {
  * Clear cache for a specific license (call after manual verification)
  */
 function invalidateCache(stateCode, licenseNumber) {
-  const key = `${stateCode.toUpperCase()}:${licenseNumber.trim().toUpperCase()}`;
+  const state = stateCode.toUpperCase();
+  const key =
+    state === 'FL'
+      ? `FL:${normalizeFloridaLicenseKeyForCache(licenseNumber)}`
+      : `${state}:${licenseNumber.trim().toUpperCase()}`;
   cache.delete(key);
 }
 

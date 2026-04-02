@@ -973,14 +973,23 @@ function VerifyPageContent() {
               ) : null}
 
               {tab === 'roster' ? (
-                <div className="rounded-xl border border-dashed border-white/20 bg-black/20 px-4 py-10 text-center">
-                  <p className="text-slate-300">Bulk roster verification is available on your account.</p>
+                <div className="space-y-4 rounded-xl border border-dashed border-white/20 bg-black/20 px-4 py-8 text-left sm:px-6">
+                  <p className="text-sm text-slate-300">
+                    Upload a <strong className="text-white">CSV</strong> with columns for state and license number
+                    (optional guard name). Business and Enterprise plans can run batch verification up to 200 or 5,000
+                    rows per file; each row uses your monthly search allowance (cached repeats count less).
+                  </p>
+                  <ul className="list-inside list-disc text-xs text-slate-500">
+                    <li>Required headers: e.g. <code className="text-slate-400">stateCode</code>,{' '}
+                    <code className="text-slate-400">licenseNumber</code> (aliases: State, License)</li>
+                    <li>Optional: <code className="text-slate-400">guardName</code> or Name</li>
+                  </ul>
                   <Link
-                    href="/dashboard"
-                    className="mt-4 inline-flex items-center justify-center rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
+                    href="/dashboard#roster-upload"
+                    className="inline-flex items-center justify-center rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
                     style={{ backgroundColor: GREEN }}
                   >
-                    Go to dashboard
+                    Open roster upload on dashboard
                   </Link>
                 </div>
               ) : null}
@@ -1038,7 +1047,13 @@ function VerifyPageContent() {
           {!loading && !error && tab === 'license' ? renderLicenseOutcome() : null}
           {!loading && !error && tab === 'name' ? renderNameOutcome() : null}
           {!loading && !error && tab === 'roster' ? (
-            <p className="py-8 text-center text-sm text-slate-500">Run a lookup above, or open the dashboard to upload a roster.</p>
+            <p className="py-8 text-center text-sm text-slate-500">
+              Roster results appear after you run a batch from the dashboard. Use{' '}
+              <Link href="/dashboard#roster-upload" className="text-[#93C5FD] underline hover:text-white">
+                CSV upload
+              </Link>{' '}
+              (Business+).
+            </p>
           ) : null}
         </div>
       </section>

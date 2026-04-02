@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { LogoutButton } from './logout-button';
 import { BillingButton } from './billing-button';
 import { SearchHistoryPanel } from './search-history-panel';
+import { RosterUploadPanel } from './roster-upload-panel';
 
 const { getPlan } = require('@/lib/config/plans') as {
   getPlan: (id: string) => {
@@ -119,7 +120,7 @@ export default async function DashboardPage() {
 
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Quick actions</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Link
               href="/verify"
               className="group rounded-xl border border-white/10 bg-slate-800/40 p-5 transition hover:border-[#1A56DB]/50 hover:bg-slate-800/70"
@@ -147,8 +148,25 @@ export default async function DashboardPage() {
                 Open invoices →
               </span>
             </Link>
+            <Link
+              href="#roster-upload"
+              className="group rounded-xl border border-white/10 bg-slate-800/40 p-5 transition hover:border-[#1A56DB]/50 hover:bg-slate-800/70"
+            >
+              <p className="font-medium text-white">Upload roster CSV</p>
+              <p className="mt-1 text-sm text-slate-400">Bulk-verify licenses from a spreadsheet (Business+).</p>
+              <span className="mt-3 inline-block text-sm font-medium text-[#1A56DB] group-hover:underline">
+                Go to upload →
+              </span>
+            </Link>
           </div>
         </section>
+
+        <RosterUploadPanel
+          batchEnabled={planId === 'business' || planId === 'enterprise'}
+          maxRows={planId === 'enterprise' ? 5000 : 200}
+          monthlySearchLimit={searchLimit}
+          searchesUsedThisMonth={searchesUsed}
+        />
 
         <section className="rounded-xl border border-white/10 bg-slate-800/30 p-6 sm:p-8">
           <SearchHistoryPanel />

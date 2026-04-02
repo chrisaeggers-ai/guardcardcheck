@@ -14,6 +14,7 @@
     "axios": "^1.14.0",
     "cheerio": "^1.2.0",
     "next": "^15.5.14",
+    "papaparse": "^5.5.3",
     "puppeteer": "^24.40.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",

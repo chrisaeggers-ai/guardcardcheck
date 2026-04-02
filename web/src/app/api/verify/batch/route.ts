@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-helpers';
+import { assertMonthlyQuotaForRosterRows, recordSearchUsage } from '@/lib/usage-enforcement';
 
 export const runtime = 'nodejs';
+/** Large rosters may need a higher host limit (e.g. Vercel Pro). */
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   const user = await getAuthUser();
@@ -29,9 +32,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `${invalid.length} roster entries are missing stateCode or licenseNumber` }, { status: 400 });
   }
 
+  const quota = await assertMonthlyQuotaForRosterRows(user.id, plan, roster.length);
+  if (!quota.ok) {
+    return NextResponse.json(
+      {
+        error: quota.message,
+        code: quota.code,
+        limit: quota.limit,
+        used: quota.used,
+      },
+      { status: 403 }
+    );
+  }
+
   try {
     const { verifyRoster } = require('@/lib/services/verificationEngine');
-    const result = await verifyRoster(roster);
+    const result = await verifyRoster(roster, {
+      afterEachVerify: async (row: { fromCache?: boolean }) => {
+        await recordSearchUsage(user.id, plan, { skip: Boolean(row.fromCache) });
+      },
+    });
     return NextResponse.json({ ...result, verifiedAt: new Date().toISOString(), plan });
   } catch (error) {
     console.error('Batch verification error:', error);

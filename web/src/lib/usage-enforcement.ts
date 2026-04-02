@@ -98,6 +98,52 @@ export async function assertSearchQuota(userId: string, planId: string): Promise
 }
 
 /**
+ * For batch roster: ensure the account has enough **remaining monthly** searches to run `rowCount`
+ * verifications (worst case: each row counts). Enterprise (unlimited) always passes.
+ * Pre-check is conservative; actual usage is recorded per row with `recordSearchUsage` (cache skips).
+ */
+export async function assertMonthlyQuotaForRosterRows(
+  userId: string,
+  planId: string,
+  rowCount: number
+): Promise<QuotaResult> {
+  if (rowCount <= 0) return { ok: true };
+
+  const plan = getPlan(planId);
+  const monthlyLimit = plan.limits.searchesPerMonth;
+  if (monthlyLimit == null) {
+    return { ok: true };
+  }
+
+  const admin = createAdminClient();
+  const now = new Date();
+  const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const { data: row } = await admin
+    .from('usage_stats')
+    .select('monthly_searches')
+    .eq('user_id', userId)
+    .eq('month_year', monthYear)
+    .maybeSingle();
+
+  const used = row?.monthly_searches ?? 0;
+  const remaining = Math.max(0, monthlyLimit - used);
+
+  if (rowCount > remaining) {
+    return {
+      ok: false,
+      code: 'QUOTA_EXCEEDED',
+      message: `This batch needs up to ${rowCount} searches (${rowCount} rows), but you only have ${remaining} left this month (plan limit ${monthlyLimit}). Reduce the file or upgrade.`,
+      limit: monthlyLimit,
+      used,
+      resetsDaily: false,
+    };
+  }
+
+  return { ok: true };
+}
+
+/**
  * Increment usage after a successful verification/search. Skips heavy accounting when skip=true (cached result).
  */
 export async function recordSearchUsage(
