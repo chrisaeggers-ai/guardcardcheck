@@ -19,10 +19,30 @@ export default function UpdatePasswordPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setHasSession(Boolean(session));
-      setChecking(false);
+    let cancelled = false;
+
+    async function sync() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!cancelled) {
+        setHasSession(Boolean(userData.user));
+        setChecking(false);
+      }
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!cancelled) {
+        setHasSession(Boolean(session?.user));
+        setChecking(false);
+      }
     });
+
+    sync();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
@@ -101,7 +121,8 @@ export default function UpdatePasswordPage() {
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">GuardCardCheck</p>
           <h1 className="mt-2 text-2xl font-bold text-white">Set a new password</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Choose a new password for your account. You will stay signed in after saving.
+            Choose a new password for your account. After saving, you&apos;ll stay signed in and can continue to the
+            dashboard.
           </p>
         </div>
 

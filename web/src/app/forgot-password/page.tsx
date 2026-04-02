@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { getBrowserSiteUrl } from '@/lib/site-url';
 
 const BLUE = '#1A56DB';
 const NAVY = '#0B1F3A';
@@ -20,10 +21,10 @@ export default function ForgotPasswordPage() {
     setInfo(null);
     setLoading(true);
 
-    const origin = window.location.origin;
+    const site = getBrowserSiteUrl();
     const supabase = createClient();
     const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${origin}/auth/callback?next=/auth/update-password`,
+      redirectTo: `${site}/auth/callback?next=/auth/update-password`,
     });
 
     setLoading(false);

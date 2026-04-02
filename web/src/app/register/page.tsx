@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { getBrowserSiteUrl } from '@/lib/site-url';
 
 const BLUE = '#1A56DB';
 const NAVY = '#0B1F3A';
@@ -35,12 +36,12 @@ export default function RegisterPage() {
 
     setLoading(true);
     const supabase = createClient();
-    const origin = window.location.origin;
+    const site = getBrowserSiteUrl();
     const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
+        emailRedirectTo: `${site}/auth/callback?next=/dashboard`,
         data: { full_name: fullName.trim() },
       },
     });

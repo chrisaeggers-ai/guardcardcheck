@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { getBrowserSiteUrl } from '@/lib/site-url';
 
 const BLUE = '#1A56DB';
 const NAVY = '#0B1F3A';
@@ -63,12 +64,12 @@ export default function LoginPage() {
     setResendLoading(true);
     setError(null);
     const supabase = createClient();
-    const origin = window.location.origin;
+    const site = getBrowserSiteUrl();
     const { error: err } = await supabase.auth.resend({
       type: 'signup',
       email: email.trim(),
       options: {
-        emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
+        emailRedirectTo: `${site}/auth/callback?next=/dashboard`,
       },
     });
     setResendLoading(false);
