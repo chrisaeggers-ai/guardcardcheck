@@ -203,6 +203,64 @@ class CaliforniaAdapter extends BaseStateAdapter {
   /**
    * One clear line for UI: what credential this row is (guard vs PPO vs firearm, etc.).
    */
+  _normalizeZipDigits(value) {
+    if (value == null || value === '') return null;
+    const d = String(value).replace(/\D/g, '');
+    if (d.length >= 9) return d.slice(0, 5);
+    if (d.length === 5) return d;
+    return null;
+  }
+
+  _zipFromObject(obj) {
+    if (!obj || typeof obj !== 'object') return null;
+    const keys = [
+      'zipCode', 'zip', 'mailingZip', 'mailingZipCode', 'mailZip', 'addrZip', 'addressZip',
+      'zip5', 'zipcode',
+    ];
+    for (const k of keys) {
+      const z = this._normalizeZipDigits(obj[k]);
+      if (z) return z;
+    }
+    return null;
+  }
+
+  /** Best-effort ZIP from DCA summary row or nested address blobs. */
+  _extractZipFromApiRow(row) {
+    if (!row || typeof row !== 'object') return null;
+    let z = this._zipFromObject(row);
+    if (z) return z;
+    z = this._zipFromObject(row.mailingAddress) || this._zipFromObject(row.address);
+    if (z) return z;
+    return null;
+  }
+
+  _extractZipFromDetailed(block, lic) {
+    let z = this._zipFromObject(lic);
+    if (z) return z;
+    z = this._zipFromObject(block);
+    if (z) return z;
+    const tryList = (arr) => {
+      if (!Array.isArray(arr)) return null;
+      for (const a of arr) {
+        const zz = this._zipFromObject(a);
+        if (zz) return zz;
+      }
+      return null;
+    };
+    z =
+      tryList(block?.getAddressDetails) ||
+      tryList(lic?.getAddressDetails) ||
+      tryList(block?.addressDetails);
+    if (z) return z;
+    for (const nb of block?.getNameDetails || []) {
+      for (const ind of nb?.individualNameDetails || []) {
+        const zz = this._zipFromObject(ind);
+        if (zz) return zz;
+      }
+    }
+    return null;
+  }
+
   _credentialFields(licTypeCode, licenseNumber, detailedLic) {
     const code = this._normalizeLicTypeCode(licTypeCode);
     const spec = BSIS_CREDENTIAL_SPEC[code];
@@ -358,6 +416,7 @@ class CaliforniaAdapter extends BaseStateAdapter {
       credentialSpecification: cred.credentialSpecification,
       credentialCategory: cred.credentialCategory,
       holderName: (r.name || '').trim(),
+      zipCode: this._extractZipFromApiRow(r),
       status: this._mapStatus(r.primaryStatusCode),
       expirationDate: r.expirationDate || null,
       isArmed: this._isArmed(tcRaw) || this._isArmed(tc),
@@ -388,6 +447,7 @@ class CaliforniaAdapter extends BaseStateAdapter {
       credentialSpecification: cred.credentialSpecification,
       credentialCategory: cred.credentialCategory,
       holderName: (row.name || '').trim(),
+      zipCode: this._extractZipFromApiRow(row),
       status: this._mapStatus(row.primaryStatusCode),
       expirationDate: row.expirationDate || null,
       isArmed: this._isArmed(tcRaw) || this._isArmed(tc),
@@ -429,6 +489,7 @@ class CaliforniaAdapter extends BaseStateAdapter {
       credentialSpecification: cred.credentialSpecification,
       credentialCategory: cred.credentialCategory,
       holderName: name.trim() || null,
+      zipCode: this._extractZipFromDetailed(block, lic),
       status: this._mapStatus(lic.primaryStatusCode),
       issueDate: lic.issueDate || null,
       expirationDate: lic.expDate || null,

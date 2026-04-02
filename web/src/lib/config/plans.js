@@ -129,7 +129,7 @@ const ADDONS = {
     id: 'event_pack',
     name: 'Event Pack',
     description: 'One-time verification of a custom guard list for a specific event.',
-    price: 49,
+    price: 450,
     stripePriceId: process.env.STRIPE_PRICE_EVENT_PACK,
     mode: 'payment',            // one-time, not subscription
     limits: {
@@ -147,15 +147,65 @@ const ADDONS = {
 // Helper functions
 const getPlan = (planId) => PLANS[planId] || PLANS.free;
 
+/**
+ * Explicit map: each subscription Price ID env → plan (`starter` | `business` | `enterprise`).
+ * Monthly + annual for each tier must both be listed so checkout + webhooks resolve correctly.
+ */
+function buildSubscriptionPriceToPlanId() {
+  /** @type {Record<string, 'starter' | 'business' | 'enterprise'>} */
+  const map = Object.create(null);
+  const pairs = [
+    [process.env.STRIPE_PRICE_STARTER_MONTHLY, 'starter'],
+    [process.env.STRIPE_PRICE_STARTER_ANNUAL, 'starter'],
+    [process.env.STRIPE_PRICE_BUSINESS_MONTHLY, 'business'],
+    [process.env.STRIPE_PRICE_BUSINESS_ANNUAL, 'business'],
+    [process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY, 'enterprise'],
+    [process.env.STRIPE_PRICE_ENTERPRISE_ANNUAL, 'enterprise'],
+  ];
+  for (const [priceId, planKey] of pairs) {
+    if (!priceId || typeof priceId !== 'string') continue;
+    const pid = priceId.trim();
+    if (!pid) continue;
+    // If the same price id appears twice with different plans, last pair wins — use unique price ids in Stripe.
+    map[pid] = planKey;
+  }
+  return map;
+}
+
+const subscriptionPriceToPlanId = buildSubscriptionPriceToPlanId();
+
 const getPlanFromStripeId = (stripePriceId) => {
-  return Object.values(PLANS).find(p =>
-    p.stripePriceId === stripePriceId ||
-    p.stripeAnnualPriceId === stripePriceId
-  ) || PLANS.free;
+  if (!stripePriceId || typeof stripePriceId !== 'string') return PLANS.free;
+  const pid = stripePriceId.trim();
+  const planId = subscriptionPriceToPlanId[pid];
+  if (planId) return PLANS[planId];
+
+  const eventPack = process.env.STRIPE_PRICE_EVENT_PACK?.trim();
+  if (eventPack && eventPack === pid) {
+    // Event Pack is a one-time `payment` checkout, not a subscription tier.
+    return PLANS.free;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(
+      `[plans] Unknown Stripe price id (set one of STRIPE_PRICE_* subscription env vars): ${pid}`
+    );
+  }
+  return PLANS.free;
 };
 
+/** True when the subscription line item uses an *annual* price id (any tier). */
 const isAnnual = (stripePriceId) => {
-  return Object.values(PLANS).some(p => p.stripeAnnualPriceId === stripePriceId);
+  if (!stripePriceId || typeof stripePriceId !== 'string') return false;
+  const pid = stripePriceId.trim();
+  const annualIds = [
+    process.env.STRIPE_PRICE_STARTER_ANNUAL,
+    process.env.STRIPE_PRICE_BUSINESS_ANNUAL,
+    process.env.STRIPE_PRICE_ENTERPRISE_ANNUAL,
+  ]
+    .filter(Boolean)
+    .map((s) => s.trim());
+  return annualIds.includes(pid);
 };
 
 const canSearch = (plan, monthlyUsage) => {

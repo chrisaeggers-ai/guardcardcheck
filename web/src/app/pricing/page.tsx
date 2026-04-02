@@ -319,7 +319,7 @@ export default function PricingPage() {
                   'One-time verification of a custom guard list for a specific event — no subscription required.'}
               </p>
               <p className="mt-3 text-2xl font-bold text-white">
-                {formatMoney(eventPack?.price ?? 49)}
+                {formatMoney(eventPack?.price ?? 450)}
                 <span className="text-base font-normal text-slate-400"> one-time</span>
               </p>
             </div>

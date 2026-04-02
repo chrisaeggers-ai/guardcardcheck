@@ -1,30 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 const BLUE = '#1A56DB';
 const NAVY = '#0B1F3A';
-const GREEN = '#059669';
 
-export default function RegisterPage() {
+export default function UpdatePasswordPage() {
   const router = useRouter();
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setHasSession(Boolean(session));
+      setChecking(false);
+    });
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setInfo(null);
-
-    if (password !== confirmPassword) {
+    if (password !== confirm) {
       setError('Passwords do not match.');
       return;
     }
@@ -35,15 +39,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     const supabase = createClient();
-    const origin = window.location.origin;
-    const { data, error: err } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
-        data: { full_name: fullName.trim() },
-      },
-    });
+    const { error: err } = await supabase.auth.updateUser({ password });
     setLoading(false);
 
     if (err) {
@@ -51,14 +47,47 @@ export default function RegisterPage() {
       return;
     }
 
-    if (data.session) {
-      router.push('/dashboard');
-      router.refresh();
-      return;
-    }
+    router.push('/dashboard');
+    router.refresh();
+  }
 
-    setInfo(
-      'Check your email for a confirmation link. After you confirm, you will be signed in and taken to your dashboard.'
+  if (checking) {
+    return (
+      <main
+        className="flex min-h-screen items-center justify-center px-4 py-12"
+        style={{ background: `linear-gradient(180deg, ${NAVY} 0%, #0a1930 100%)` }}
+      >
+        <p className="text-sm text-slate-400">Loading…</p>
+      </main>
+    );
+  }
+
+  if (!hasSession) {
+    return (
+      <main
+        className="flex min-h-screen items-center justify-center px-4 py-12"
+        style={{ background: `linear-gradient(180deg, ${NAVY} 0%, #0a1930 100%)` }}
+      >
+        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.06] p-8 text-center shadow-2xl backdrop-blur sm:p-10">
+          <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">GuardCardCheck</p>
+          <h1 className="mt-2 text-xl font-bold text-white">Session required</h1>
+          <p className="mt-3 text-sm text-slate-400">
+            Open the password reset link from your email, or request a new one below.
+          </p>
+          <Link
+            href="/forgot-password"
+            className="mt-6 inline-block rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
+            style={{ backgroundColor: BLUE }}
+          >
+            Request reset link
+          </Link>
+          <p className="mt-6 text-sm text-slate-400">
+            <Link href="/login" className="text-blue-400 hover:underline">
+              Back to sign in
+            </Link>
+          </p>
+        </div>
+      </main>
     );
   }
 
@@ -70,8 +99,10 @@ export default function RegisterPage() {
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-2xl backdrop-blur sm:p-10">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">GuardCardCheck</p>
-          <h1 className="mt-2 text-2xl font-bold text-white">Create your account</h1>
-          <p className="mt-2 text-sm text-slate-400">Start verifying guard licenses in minutes.</p>
+          <h1 className="mt-2 text-2xl font-bold text-white">Set a new password</h1>
+          <p className="mt-2 text-sm text-slate-400">
+            Choose a new password for your account. You will stay signed in after saving.
+          </p>
         </div>
 
         <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-5">
@@ -83,41 +114,8 @@ export default function RegisterPage() {
               {error}
             </div>
           )}
-          {info && (
-            <div
-              className="rounded-xl border px-4 py-3 text-sm text-emerald-100"
-              style={{
-                borderColor: `${GREEN}55`,
-                backgroundColor: `${GREEN}22`,
-              }}
-            >
-              {info}
-            </div>
-          )}
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-slate-300">Full name</span>
-            <input
-              type="text"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-white/20 focus:ring-2 focus:ring-[#1A56DB]/50"
-              autoComplete="name"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-slate-300">Email</span>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-white/20 focus:ring-2 focus:ring-[#1A56DB]/50"
-              autoComplete="email"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-slate-300">Password</span>
+            <span className="font-medium text-slate-300">New password</span>
             <input
               type="password"
               required
@@ -129,13 +127,13 @@ export default function RegisterPage() {
             />
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-slate-300">Confirm password</span>
+            <span className="font-medium text-slate-300">Confirm new password</span>
             <input
               type="password"
               required
               minLength={6}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
               className="rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-white/20 focus:ring-2 focus:ring-[#1A56DB]/50"
               autoComplete="new-password"
             />
@@ -146,14 +144,13 @@ export default function RegisterPage() {
             className="mt-2 rounded-xl py-3.5 text-sm font-semibold text-white shadow-lg transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
             style={{ backgroundColor: BLUE }}
           >
-            {loading ? 'Creating account…' : 'Create account'}
+            {loading ? 'Updating…' : 'Update password & continue'}
           </button>
         </form>
 
         <p className="mt-8 text-center text-sm text-slate-400">
-          Already have an account?{' '}
           <Link href="/login" className="font-semibold text-blue-400 hover:underline">
-            Sign in
+            Back to sign in
           </Link>
         </p>
       </div>

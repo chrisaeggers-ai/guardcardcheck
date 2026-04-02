@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { applySubscriptionToProfile } from '@/lib/stripe/sync-profile-subscription';
 
 export const runtime = 'nodejs';
 
@@ -22,27 +23,56 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Webhook signature: ${msg}` }, { status: 400 });
   }
 
-  const { getPlanFromStripeId, isAnnual } = require('@/lib/config/plans');
+  const { isAnnual } = require('@/lib/config/plans') as {
+    isAnnual: (id: string) => boolean;
+  };
   const admin = createAdminClient();
 
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        if (session.mode === 'subscription' && session.metadata?.userId) {
+
+        if (session.mode === 'subscription' && session.subscription) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string);
-          const priceId = sub.items.data[0].price.id;
-          const plan = getPlanFromStripeId(priceId);
-          await admin.from('profiles').update({
-            plan: plan.id,
-            stripe_customer_id: session.customer as string,
-            stripe_subscription_id: sub.id,
-            stripe_price_id: priceId,
-            subscription_status: sub.status,
-            billing_interval: session.metadata?.billing || 'monthly',
-            plan_expires_at: new Date(sub.current_period_end * 1000).toISOString(),
-          }).eq('id', session.metadata.userId);
+          const priceId = sub.items.data[0]?.price?.id;
+          if (!priceId) {
+            console.error('[Webhook] checkout.session.completed: missing price id');
+            break;
+          }
+
+          const userId = session.metadata?.userId || sub.metadata?.userId;
+          if (!userId) {
+            console.error('[Webhook] checkout.session.completed: missing userId in session/subscription metadata');
+            break;
+          }
+
+          const customerId =
+            typeof session.customer === 'string' ? session.customer : session.customer?.id;
+          if (!customerId) {
+            console.error('[Webhook] checkout.session.completed: missing customer');
+            break;
+          }
+
+          const billingMeta = session.metadata?.billing;
+          const billing: 'monthly' | 'annual' =
+            billingMeta === 'annual' || isAnnual(priceId) ? 'annual' : 'monthly';
+
+          const applied = await applySubscriptionToProfile(admin, {
+            userId,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: sub.id,
+            stripePriceId: priceId,
+            subscriptionStatus: sub.status,
+            billingInterval: billing,
+            planExpiresAtIso: new Date(sub.current_period_end * 1000).toISOString(),
+            checkoutSessionId: session.id,
+          });
+          if (!applied.ok) {
+            console.error('[Webhook] applySubscriptionToProfile failed:', applied.error);
+          }
         }
+
         if (session.metadata?.product === 'event_pack' && session.metadata?.userId) {
           const crypto = await import('crypto');
           const token = 'ep_' + crypto.randomBytes(24).toString('hex');
@@ -51,7 +81,8 @@ export async function POST(request: NextRequest) {
             user_id: session.metadata.userId,
             stripe_session_id: session.id,
             event_name: session.metadata.eventName || '',
-            token, expires_at: expiresAt,
+            token,
+            expires_at: expiresAt,
           });
         }
         break;
@@ -59,39 +90,70 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
-        const priceId = sub.items.data[0]?.price.id;
-        const plan = getPlanFromStripeId(priceId);
+        const priceId = sub.items.data[0]?.price?.id;
+        if (!priceId) break;
+
         const billing = isAnnual(priceId) ? 'annual' : 'monthly';
-        await admin.from('profiles').update({
-          plan: sub.status === 'canceled' ? 'free' : plan.id,
-          stripe_subscription_id: sub.id,
-          stripe_price_id: priceId,
-          subscription_status: sub.status,
-          billing_interval: billing,
-          plan_expires_at: new Date(sub.current_period_end * 1000).toISOString(),
-        }).eq('stripe_customer_id', sub.customer as string);
+
+        let userId = sub.metadata?.userId as string | undefined;
+        if (!userId) {
+          const { data: profile } = await admin
+            .from('profiles')
+            .select('id')
+            .eq('stripe_customer_id', sub.customer as string)
+            .maybeSingle();
+          userId = profile?.id as string | undefined;
+        }
+        if (!userId) {
+          console.warn('[Webhook] subscription.updated: no userId metadata and no profile row for customer', sub.customer);
+          break;
+        }
+
+        const applied = await applySubscriptionToProfile(admin, {
+          userId,
+          stripeCustomerId: sub.customer as string,
+          stripeSubscriptionId: sub.id,
+          stripePriceId: priceId,
+          subscriptionStatus: sub.status,
+          billingInterval: billing,
+          planExpiresAtIso: new Date(sub.current_period_end * 1000).toISOString(),
+          checkoutSessionId: null,
+        });
+        if (!applied.ok) {
+          console.error('[Webhook] subscription.updated apply failed:', applied.error);
+        }
         break;
       }
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
-        await admin.from('profiles').update({
-          plan: 'free',
-          stripe_subscription_id: null,
-          subscription_status: 'canceled',
-          plan_expires_at: new Date().toISOString(),
-        }).eq('stripe_customer_id', sub.customer as string);
+        await admin
+          .from('profiles')
+          .update({
+            plan: 'free',
+            stripe_subscription_id: null,
+            subscription_status: 'canceled',
+            plan_expires_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('stripe_customer_id', sub.customer as string);
         break;
       }
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         if (invoice.subscription) {
-          await admin.from('profiles').update({ subscription_status: 'active' }).eq('stripe_customer_id', invoice.customer as string);
+          await admin
+            .from('profiles')
+            .update({ subscription_status: 'active', updated_at: new Date().toISOString() })
+            .eq('stripe_customer_id', invoice.customer as string);
         }
         break;
       }
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        await admin.from('profiles').update({ subscription_status: 'past_due' }).eq('stripe_customer_id', invoice.customer as string);
+        await admin
+          .from('profiles')
+          .update({ subscription_status: 'past_due', updated_at: new Date().toISOString() })
+          .eq('stripe_customer_id', invoice.customer as string);
         break;
       }
       default:

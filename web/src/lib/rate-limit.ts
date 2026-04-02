@@ -105,6 +105,9 @@ export function ruleForPathname(pathname: string): RateLimitRule | null {
   if (pathname.startsWith('/api/search-public')) {
     return { id: 'search-public', limit: LIMITS.searchPublic, windowMs: w };
   }
+  if (pathname.startsWith('/api/search-history')) {
+    return { id: 'search-history', limit: LIMITS.billing, windowMs: w };
+  }
   if (pathname.startsWith('/api/search')) {
     return { id: 'search-auth', limit: LIMITS.searchAuth, windowMs: w };
   }

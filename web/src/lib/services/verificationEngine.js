@@ -131,7 +131,7 @@ async function searchByName(firstName, lastName, states = 'ALL') {
 
   const cacheKey = `NAME:${firstName.trim().toLowerCase()}:${lastName.trim().toLowerCase()}:${validCodes.slice().sort().join(',')}`;
   const nameHit = getCached(cacheKey);
-  if (nameHit) return nameHit;
+  if (nameHit) return { results: nameHit, fromCache: true };
 
   // Run all state lookups in parallel
   const promises = validCodes.map(async (stateCode) => {
@@ -156,7 +156,7 @@ async function searchByName(firstName, lastName, states = 'ALL') {
   if (merged.length > 0) {
     setCache(cacheKey, merged);
   }
-  return merged;
+  return { results: merged, fromCache: false };
 }
 
 /**

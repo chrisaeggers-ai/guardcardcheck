@@ -21,6 +21,8 @@ export type FloridaLicenseRecord = {
   license_type: 'D' | 'G' | string;
   status: string | null;
   expiration_date: string | null;
+  /** Mailing / physical ZIP when parsed from the detail page */
+  zip_code: string | null;
 };
 
 export type FloridaLookupSuccess = {
@@ -108,6 +110,28 @@ function parseUsDateToIso(mmddyyyy: string): string | null {
   return d.toISOString().slice(0, 10);
 }
 
+function extractZipFromFloridaDetail($: ReturnType<typeof load>): string | null {
+  let zip: string | null = null;
+  $('table tr').each((_, tr) => {
+    const cells = $(tr).find('td, th');
+    if (cells.length < 2) return;
+    const label = $(cells[0]).text().trim().toLowerCase();
+    if (label === 'zip' || label === 'zip code' || /^zip\b/.test(label)) {
+      const val = $(cells[1]).text().trim();
+      const m = val.match(/\b(\d{5})(?:-\d{4})?\b/);
+      if (m) zip = m[1];
+    }
+  });
+  if (!zip) {
+    const raw =
+      $('#cphMain_tcDtlZip, [id*="Zip"], [id*="zip"]').first().text().trim() ||
+      $('[id*="ZipCode"], [id*="zipcode"]').first().text().trim();
+    const m = raw.match(/\b(\d{5})\b/);
+    if (m) zip = m[1];
+  }
+  return zip;
+}
+
 function parseDetailHtml(html: string): FloridaLicenseRecord | null {
   const $ = load(html);
   const lic = $('#cphMain_tcDtlLicNum').first().text().trim();
@@ -119,12 +143,14 @@ function parseDetailHtml(html: string): FloridaLicenseRecord | null {
   const status = $('#cphMain_tcDtlStatus').first().text().trim() || null;
   const expRaw = $('#cphMain_tcDtlExpr').first().text().trim();
   const expiration_date = expRaw ? parseUsDateToIso(expRaw) : null;
+  const zip_code = extractZipFromFloridaDetail($);
   return {
     name: name || null,
     license_number: lic || null,
     license_type: licenseTypeFromNumber(lic),
     status,
     expiration_date,
+    zip_code,
   };
 }
 

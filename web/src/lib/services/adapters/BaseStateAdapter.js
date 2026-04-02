@@ -61,6 +61,8 @@ class BaseStateAdapter {
       /** Optional coarse bucket: guard_employee | company_ppo | firearm | pi | other */
       credentialCategory: rawData.credentialCategory || null,
       holderName: rawData.holderName || null,
+      /** Mailing or business ZIP when the source provides it */
+      zipCode: rawData.zipCode || null,
       status: this._normalizeStatus(rawData.status),  // ACTIVE | EXPIRED | REVOKED | SUSPENDED | NOT_FOUND
       issueDate: rawData.issueDate ? new Date(rawData.issueDate) : null,
       expirationDate: rawData.expirationDate ? new Date(rawData.expirationDate) : null,

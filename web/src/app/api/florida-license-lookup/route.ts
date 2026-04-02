@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/auth-helpers';
+import { recordFloridaLookupHistory } from '@/lib/search-history-florida-texas';
+import { assertSearchQuota, recordSearchUsage } from '@/lib/usage-enforcement';
 import {
   getFloridaLicenseCache,
   lookupFloridaLicensesPuppeteer,
@@ -49,16 +52,45 @@ function parseParamsFromSearchParams(sp: URLSearchParams) {
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, error: 'BAD_REQUEST', message: 'Sign in to run license lookups.', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+
     const params = parseParamsFromSearchParams(request.nextUrl.searchParams);
 
     const cached = getFloridaLicenseCache(params);
-    if (cached) return jsonSuccess(cached);
+    if (cached) {
+      await recordFloridaLookupHistory(user.id, params, cached, { fromCache: true });
+      return jsonSuccess(cached);
+    }
+
+    const quota = await assertSearchQuota(user.id, user.plan);
+    if (!quota.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'BAD_REQUEST',
+          message: quota.message,
+          code: quota.code,
+          limit: quota.limit,
+          used: quota.used,
+        },
+        { status: 403 }
+      );
+    }
 
     const result = await lookupFloridaLicensesPuppeteer(params);
     if (result.ok) {
       setFloridaLicenseCache(params, result);
+      await recordSearchUsage(user.id, user.plan);
+      await recordFloridaLookupHistory(user.id, params, result);
       return jsonSuccess(result);
     }
+    await recordFloridaLookupHistory(user.id, params, result);
     return jsonError(result, statusForError(result.error));
   } catch (e) {
     console.error('[florida-license-lookup GET]', e);
@@ -75,6 +107,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, error: 'BAD_REQUEST', message: 'Sign in to run license lookups.', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+
     let body: Record<string, unknown> = {};
     try {
       body = (await request.json()) as Record<string, unknown>;
@@ -101,13 +141,34 @@ export async function POST(request: NextRequest) {
     };
 
     const cached = getFloridaLicenseCache(params);
-    if (cached) return jsonSuccess(cached);
+    if (cached) {
+      await recordFloridaLookupHistory(user.id, params, cached, { fromCache: true });
+      return jsonSuccess(cached);
+    }
+
+    const quota = await assertSearchQuota(user.id, user.plan);
+    if (!quota.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'BAD_REQUEST',
+          message: quota.message,
+          code: quota.code,
+          limit: quota.limit,
+          used: quota.used,
+        },
+        { status: 403 }
+      );
+    }
 
     const result = await lookupFloridaLicensesPuppeteer(params);
     if (result.ok) {
       setFloridaLicenseCache(params, result);
+      await recordSearchUsage(user.id, user.plan);
+      await recordFloridaLookupHistory(user.id, params, result);
       return jsonSuccess(result);
     }
+    await recordFloridaLookupHistory(user.id, params, result);
     return jsonError(result, statusForError(result.error));
   } catch (e) {
     console.error('[florida-license-lookup POST]', e);

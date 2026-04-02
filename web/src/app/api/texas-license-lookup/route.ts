@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/auth-helpers';
+import { recordTexasLookupHistory } from '@/lib/search-history-florida-texas';
+import { assertSearchQuota, recordSearchUsage } from '@/lib/usage-enforcement';
 import {
   getTexasLicenseCache,
   lookupTexasLicenses,
@@ -40,6 +43,14 @@ function statusForError(code: TexasLookupFailure['error']): number {
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, error: 'BAD_REQUEST', message: 'Sign in to run license lookups.', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+
     const sp = request.nextUrl.searchParams;
     const query = sp.get('q') ?? sp.get('query') ?? '';
     const filter =
@@ -54,13 +65,34 @@ export async function GET(request: NextRequest) {
     }
 
     const cached = getTexasLicenseCache(query);
-    if (cached) return jsonSuccess(cached);
+    if (cached) {
+      await recordTexasLookupHistory(user.id, query, cached, { fromCache: true, filter });
+      return jsonSuccess(cached);
+    }
+
+    const quota = await assertSearchQuota(user.id, user.plan);
+    if (!quota.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'BAD_REQUEST',
+          message: quota.message,
+          code: quota.code,
+          limit: quota.limit,
+          used: quota.used,
+        },
+        { status: 403 }
+      );
+    }
 
     const result = await lookupTexasLicenses({ query, filter });
     if (result.ok) {
       setTexasLicenseCache(query, result);
+      await recordSearchUsage(user.id, user.plan);
+      await recordTexasLookupHistory(user.id, query, result, { filter });
       return jsonSuccess(result);
     }
+    await recordTexasLookupHistory(user.id, query, result, { filter });
     return jsonError(result, statusForError(result.error));
   } catch (e) {
     console.error('[texas-license-lookup GET]', e);
@@ -77,6 +109,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, error: 'BAD_REQUEST', message: 'Sign in to run license lookups.', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      );
+    }
+
     let body: Record<string, unknown> = {};
     try {
       body = (await request.json()) as Record<string, unknown>;
@@ -106,13 +146,34 @@ export async function POST(request: NextRequest) {
     }
 
     const cached = getTexasLicenseCache(query);
-    if (cached) return jsonSuccess(cached);
+    if (cached) {
+      await recordTexasLookupHistory(user.id, query, cached, { fromCache: true, filter });
+      return jsonSuccess(cached);
+    }
+
+    const quota = await assertSearchQuota(user.id, user.plan);
+    if (!quota.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'BAD_REQUEST',
+          message: quota.message,
+          code: quota.code,
+          limit: quota.limit,
+          used: quota.used,
+        },
+        { status: 403 }
+      );
+    }
 
     const result = await lookupTexasLicenses({ query, filter });
     if (result.ok) {
       setTexasLicenseCache(query, result);
+      await recordSearchUsage(user.id, user.plan);
+      await recordTexasLookupHistory(user.id, query, result, { filter });
       return jsonSuccess(result);
     }
+    await recordTexasLookupHistory(user.id, query, result, { filter });
     return jsonError(result, statusForError(result.error));
   } catch (e) {
     console.error('[texas-license-lookup POST]', e);

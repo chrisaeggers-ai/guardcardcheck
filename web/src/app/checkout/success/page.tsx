@@ -1,16 +1,49 @@
 'use client';
 
 import Link from 'next/link';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-const NAVY = '#0B1F3A';
 const BLUE = '#1A56DB';
 const GREEN = '#059669';
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'ok' | 'err'>('idle');
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+    setSyncState('syncing');
+    void fetch('/api/billing/sync-checkout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    })
+      .then(async (res) => {
+        const data = (await res.json().catch(() => ({}))) as { error?: string; plan?: string };
+        if (cancelled) return;
+        if (res.ok) {
+          setSyncState('ok');
+          setSyncMessage(typeof data.plan === 'string' ? `Plan: ${data.plan}` : null);
+          return;
+        }
+        setSyncState('err');
+        setSyncMessage(typeof data.error === 'string' ? data.error : 'Could not activate your plan yet.');
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSyncState('err');
+          setSyncMessage('Network error while confirming your subscription.');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[#0b1f3a] px-4 py-16">
@@ -35,9 +68,23 @@ function CheckoutSuccessContent() {
           Thank you for subscribing. Your account is ready to use.
         </p>
         {sessionId ? (
-          <p className="mt-4 truncate rounded-lg bg-black/20 px-3 py-2 font-mono text-xs text-slate-500">
-            Session: {sessionId}
-          </p>
+          <div className="mt-4 space-y-2 text-left">
+            <p className="truncate rounded-lg bg-black/20 px-3 py-2 font-mono text-xs text-slate-500">
+              Session: {sessionId}
+            </p>
+            {syncState === 'syncing' ? (
+              <p className="text-xs text-slate-400">Activating your plan…</p>
+            ) : null}
+            {syncState === 'ok' && syncMessage ? (
+              <p className="text-xs text-emerald-300/90">{syncMessage}</p>
+            ) : null}
+            {syncState === 'err' && syncMessage ? (
+              <p className="text-xs text-amber-200/90">
+                {syncMessage} If your dashboard still shows Free, wait a minute for Stripe webhooks or contact support
+                with your session id.
+              </p>
+            ) : null}
+          </div>
         ) : null}
         <Link
           href="/dashboard"

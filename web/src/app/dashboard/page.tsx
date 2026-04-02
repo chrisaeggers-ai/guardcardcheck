@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { LogoutButton } from './logout-button';
 import { BillingButton } from './billing-button';
+import { SearchHistoryPanel } from './search-history-panel';
 
 const { getPlan } = require('@/lib/config/plans') as {
   getPlan: (id: string) => {
@@ -74,7 +75,15 @@ export default async function DashboardPage() {
               {planConfig.name}
             </span>
           </div>
-          <LogoutButton />
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/"
+              className="rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-[#1A56DB]/50 hover:bg-white/10 hover:text-white"
+            >
+              Back to home
+            </Link>
+            <LogoutButton />
+          </div>
         </div>
       </header>
 
@@ -141,11 +150,8 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="rounded-xl border border-dashed border-white/15 bg-slate-800/30 p-8 text-center">
-          <h2 className="text-sm font-semibold text-slate-300">Recent activity</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Verification history and alerts will appear here soon.
-          </p>
+        <section className="rounded-xl border border-white/10 bg-slate-800/30 p-6 sm:p-8">
+          <SearchHistoryPanel />
         </section>
       </main>
     </div>

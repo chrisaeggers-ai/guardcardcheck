@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState, Suspense, type CSSProperties } from 'react';
-import { rateLimitMessage } from '@/lib/api-response-helpers';
+import { authQuotaInfo, rateLimitMessage } from '@/lib/api-response-helpers';
 import { VerificationLoadingPanel } from '@/components/verification-loading-panel';
 
 const NAVY = '#0B1F3A';
@@ -170,6 +170,8 @@ interface VerificationResult {
   /** e.g. guard_employee | company_ppo | firearm | pi */
   credentialCategory?: string | null;
   holderName?: string | null;
+  /** USPS ZIP when the source provides it */
+  zipCode?: string | null;
   status: string;
   issueDate?: string | null;
   expirationDate?: string | null;
@@ -186,6 +188,7 @@ interface FloridaApiRecord {
   license_type: string;
   status: string | null;
   expiration_date: string | null;
+  zip_code?: string | null;
 }
 
 interface FloridaApiResponse {
@@ -204,6 +207,7 @@ interface TexasApiRecord {
   issued_on: string | null;
   expiration_date: string | null;
   status: string | null;
+  zip_code?: string | null;
 }
 
 interface TexasApiResponse {
@@ -241,6 +245,7 @@ function mapFloridaRecordsToVerification(
     licenseNumber: row.license_number,
     licenseType: floridaLicenseTypeLabel(row.license_type),
     holderName: row.name,
+    zipCode: row.zip_code ?? null,
     status: normalizeFloridaStatus(row.status || ''),
     issueDate: null,
     expirationDate: row.expiration_date ?? null,
@@ -270,6 +275,7 @@ function mapTexasRecordsToVerification(
     licenseNumber: null,
     licenseType: `${row.license_type}${row.section ? ` (${row.section})` : ''}`,
     holderName: row.name,
+    zipCode: row.zip_code ?? null,
     status: normalizeTexasStatus(row.status || ''),
     issueDate: row.issued_on ?? null,
     expirationDate: row.expiration_date ?? null,
@@ -390,6 +396,11 @@ function ResultCard({ row }: { row: VerificationResult }) {
             <span className="text-slate-500">License #</span> {row.licenseNumber}
           </p>
         ) : null}
+        {row.zipCode ? (
+          <p className="mt-1 text-sm text-slate-400">
+            <span className="text-slate-500">ZIP</span> {row.zipCode}
+          </p>
+        ) : null}
         <p className="mt-1 text-xs text-slate-500">
           {row.stateCode}
           {row.stateName ? ` · ${row.stateName}` : ''}
@@ -492,10 +503,27 @@ function VerifyPageContent() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorHint, setErrorHint] = useState<'none' | 'login' | 'pricing'>('none');
   const [verifyResult, setVerifyResult] = useState<VerificationResult | null>(null);
   const [searchResults, setSearchResults] = useState<VerificationResult[] | null>(null);
 
   const placeholder = useMemo(() => LICENSE_PLACEHOLDERS[stateCode], [stateCode]);
+
+  function gateApiResponse(res: Response, data: unknown): boolean {
+    const rl = rateLimitMessage(res, data);
+    if (rl) {
+      setError(rl);
+      setErrorHint('none');
+      return true;
+    }
+    const aq = authQuotaInfo(res, data);
+    if (aq.kind !== 'none') {
+      setError(aq.message);
+      setErrorHint(aq.kind === 'unauthorized' ? 'login' : 'pricing');
+      return true;
+    }
+    return false;
+  }
 
   useEffect(() => {
     const st = searchParams.get('state');
@@ -516,6 +544,7 @@ function VerifyPageContent() {
   async function onVerifyLicense(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrorHint('none');
     setSearchResults(null);
     setLoading(true);
     setVerifyResult(null);
@@ -523,15 +552,12 @@ function VerifyPageContent() {
       if (stateCode === 'FL') {
         const res = await fetch('/api/florida-license-lookup', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ licenseNumber: licenseNumber.trim() }),
         });
         const data = (await res.json().catch(() => ({}))) as FloridaApiResponse;
-        const rl = rateLimitMessage(res, data);
-        if (rl) {
-          setError(rl);
-          return;
-        }
+        if (gateApiResponse(res, data)) return;
         if (!data.ok) {
           if (data.error === 'NO_RESULTS') {
             setVerifyResult({
@@ -564,15 +590,12 @@ function VerifyPageContent() {
       if (stateCode === 'TX') {
         const res = await fetch('/api/texas-license-lookup', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: licenseNumber.trim() }),
         });
         const data = (await res.json().catch(() => ({}))) as TexasApiResponse;
-        const rl = rateLimitMessage(res, data);
-        if (rl) {
-          setError(rl);
-          return;
-        }
+        if (gateApiResponse(res, data)) return;
         if (!data.ok) {
           if (data.error === 'NO_RESULTS') {
             setVerifyResult({
@@ -609,6 +632,7 @@ function VerifyPageContent() {
         body: JSON.stringify({ stateCode, licenseNumber: licenseNumber.trim() }),
       });
       const data = await res.json().catch(() => ({}));
+      if (gateApiResponse(res, data)) return;
       if (!res.ok) {
         setError(typeof data.error === 'string' ? data.error : 'Verification failed.');
         return;
@@ -624,6 +648,7 @@ function VerifyPageContent() {
   async function onSearchName(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrorHint('none');
     setVerifyResult(null);
     setLoading(true);
     setSearchResults(null);
@@ -631,6 +656,7 @@ function VerifyPageContent() {
       if (stateCode === 'FL') {
         const res = await fetch('/api/florida-license-lookup', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             firstName: firstName.trim(),
@@ -638,11 +664,7 @@ function VerifyPageContent() {
           }),
         });
         const data = (await res.json().catch(() => ({}))) as FloridaApiResponse;
-        const rl = rateLimitMessage(res, data);
-        if (rl) {
-          setError(rl);
-          return;
-        }
+        if (gateApiResponse(res, data)) return;
         if (!data.ok) {
           if (data.error === 'NO_RESULTS') {
             setSearchResults([]);
@@ -667,6 +689,7 @@ function VerifyPageContent() {
         }),
       });
       const data = await res.json().catch(() => ({}));
+      if (gateApiResponse(res, data)) return;
       if (!res.ok) {
         setError(typeof data.error === 'string' ? data.error : 'Search failed.');
         return;
@@ -748,6 +771,7 @@ function VerifyPageContent() {
                   onClick={() => {
                     setTab(t.id);
                     setError(null);
+                    setErrorHint('none');
                   }}
                   className={`flex-1 rounded-lg px-3 py-2.5 text-center text-sm font-medium transition ${
                     tab === t.id ? 'text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
@@ -772,6 +796,7 @@ function VerifyPageContent() {
                       onChange={(e) => {
                         setStateCode(e.target.value as StateCode);
                         setError(null);
+                        setErrorHint('none');
                         setVerifyResult(null);
                         setSearchResults(null);
                       }}
@@ -839,6 +864,7 @@ function VerifyPageContent() {
                         onChange={(e) => {
                           setStateCode(e.target.value as StateCode);
                           setError(null);
+                          setErrorHint('none');
                           setVerifyResult(null);
                           setSearchResults(null);
                         }}
@@ -881,6 +907,7 @@ function VerifyPageContent() {
                         onChange={(e) => {
                           setStateCode(e.target.value as StateCode);
                           setError(null);
+                          setErrorHint('none');
                           setVerifyResult(null);
                           setSearchResults(null);
                         }}
@@ -981,7 +1008,23 @@ function VerifyPageContent() {
         <h2 className="text-lg font-semibold text-white">Results</h2>
         <div className="mt-4 min-h-[120px] rounded-2xl border border-white/5 bg-slate-900/40 p-4">
           {error ? (
-            <div className="rounded-xl border border-red-500/40 bg-red-950/30 px-4 py-3 text-sm text-red-100">{error}</div>
+            <div className="rounded-xl border border-red-500/40 bg-red-950/30 px-4 py-3 text-sm text-red-100">
+              <p>{error}</p>
+              {errorHint === 'login' ? (
+                <p className="mt-2">
+                  <Link href="/login" className="font-medium text-[#93C5FD] underline underline-offset-2 hover:text-white">
+                    Sign in
+                  </Link>
+                </p>
+              ) : null}
+              {errorHint === 'pricing' ? (
+                <p className="mt-2">
+                  <Link href="/pricing" className="font-medium text-[#93C5FD] underline underline-offset-2 hover:text-white">
+                    View plans and upgrade
+                  </Link>
+                </p>
+              ) : null}
+            </div>
           ) : null}
           {loading ? (
             <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-gradient-to-b from-slate-800/40 via-slate-900/50 to-slate-950/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">

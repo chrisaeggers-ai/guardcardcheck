@@ -1,9 +1,10 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { rateLimitMessage } from '@/lib/api-response-helpers';
+import { authQuotaInfo, rateLimitMessage } from '@/lib/api-response-helpers';
 import { VerificationLoadingPanel } from '@/components/verification-loading-panel';
 
 const STORAGE_KEY_MODE = 'gcc_home_mode';
@@ -21,6 +22,7 @@ type VerifyResult = {
   credentialSpecification?: string;
   credentialCategory?: string;
   holderName?: string | null;
+  zipCode?: string | null;
   status?: string;
   expirationDate?: string | null;
 };
@@ -34,6 +36,7 @@ type FloridaApiRow = {
   license_type: string;
   status: string | null;
   expiration_date: string | null;
+  zip_code?: string | null;
 };
 
 function normalizeFloridaRow(r: FloridaApiRow): VerifyResult {
@@ -55,6 +58,7 @@ function normalizeFloridaRow(r: FloridaApiRow): VerifyResult {
           ? 'Class D — Security Officer'
           : r.license_type,
     holderName: r.name ?? undefined,
+    zipCode: r.zip_code ?? null,
     status: norm,
     expirationDate: r.expiration_date
       ? new Date(`${r.expiration_date}T12:00:00`).toISOString()
@@ -72,6 +76,7 @@ function mapPublicSearchRow(row: Record<string, unknown>): VerifyResult {
     credentialCategory:
       typeof row.credentialCategory === 'string' ? row.credentialCategory : undefined,
     holderName: (row.holderName as string) ?? null,
+    zipCode: typeof row.zipCode === 'string' ? row.zipCode : null,
     status: typeof row.status === 'string' ? row.status : 'UNKNOWN',
     expirationDate:
       row.expirationDate != null
@@ -94,6 +99,7 @@ export function HomeQuickVerify() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorHint, setErrorHint] = useState<'none' | 'login' | 'pricing'>('none');
   const [results, setResults] = useState<VerifyResult[] | null>(null);
 
   useEffect(() => {
@@ -132,6 +138,22 @@ export function HomeQuickVerify() {
     });
     return () => subscription.unsubscribe();
   }, [supabase]);
+
+  function gateApiResponse(res: Response, data: unknown): boolean {
+    const rl = rateLimitMessage(res, data);
+    if (rl) {
+      setError(rl);
+      setErrorHint('none');
+      return true;
+    }
+    const aq = authQuotaInfo(res, data);
+    if (aq.kind !== 'none') {
+      setError(aq.message);
+      setErrorHint(aq.kind === 'unauthorized' ? 'login' : 'pricing');
+      return true;
+    }
+    return false;
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -177,6 +199,7 @@ export function HomeQuickVerify() {
 
     setLoading(true);
     setError(null);
+    setErrorHint('none');
     setResults(null);
 
     try {
@@ -189,11 +212,7 @@ export function HomeQuickVerify() {
             body: JSON.stringify({ licenseNumber: licTrim }),
           });
           const data = await res.json();
-          const rl = rateLimitMessage(res, data);
-          if (rl) {
-            setError(rl);
-            return;
-          }
+          if (gateApiResponse(res, data)) return;
           if (!data.ok) {
             setError(
               typeof data.message === 'string'
@@ -219,11 +238,7 @@ export function HomeQuickVerify() {
             body: JSON.stringify({ query: licTrim }),
           });
           const data = await res.json();
-          const rl = rateLimitMessage(res, data);
-          if (rl) {
-            setError(rl);
-            return;
-          }
+          if (gateApiResponse(res, data)) return;
           if (!data.ok) {
             setError(
               typeof data.message === 'string'
@@ -237,14 +252,30 @@ export function HomeQuickVerify() {
             setError('No matching Texas license found.');
             return;
           }
-          setResults(rows.map((r: { name: string; license_type: string; section: string; status: string | null; expiration_date: string | null }) => ({
-            stateCode: 'TX',
-            licenseNumber: null,
-            licenseType: r.license_type,
-            holderName: r.name,
-            status: (r.status || '').toUpperCase().includes('REGISTERED') ? 'ACTIVE' : r.status || 'UNKNOWN',
-            expirationDate: r.expiration_date ? new Date(`${r.expiration_date}T12:00:00`).toISOString() : null,
-          })));
+          setResults(
+            rows.map(
+              (r: {
+                name: string;
+                license_type: string;
+                section: string;
+                status: string | null;
+                expiration_date: string | null;
+                zip_code?: string | null;
+              }) => ({
+                stateCode: 'TX',
+                licenseNumber: null,
+                licenseType: r.license_type,
+                holderName: r.name,
+                zipCode: r.zip_code ?? null,
+                status: (r.status || '').toUpperCase().includes('REGISTERED')
+                  ? 'ACTIVE'
+                  : r.status || 'UNKNOWN',
+                expirationDate: r.expiration_date
+                  ? new Date(`${r.expiration_date}T12:00:00`).toISOString()
+                  : null,
+              })
+            )
+          );
           return;
         }
 
@@ -255,11 +286,7 @@ export function HomeQuickVerify() {
           body: JSON.stringify({ stateCode, licenseNumber: licTrim }),
         });
         const data = await res.json();
-        const rl = rateLimitMessage(res, data);
-        if (rl) {
-          setError(rl);
-          return;
-        }
+        if (gateApiResponse(res, data)) return;
         if (!res.ok) {
           setError(data.error || 'Verification failed. Please try again.');
           return;
@@ -276,11 +303,7 @@ export function HomeQuickVerify() {
           body: JSON.stringify({ firstName: fnTrim, lastName: lnTrim }),
         });
         const data = await res.json();
-        const rl = rateLimitMessage(res, data);
-        if (rl) {
-          setError(rl);
-          return;
-        }
+        if (gateApiResponse(res, data)) return;
         if (!data.ok) {
           if (data.error === 'NO_RESULTS') {
             setResults([]);
@@ -309,11 +332,7 @@ export function HomeQuickVerify() {
         }),
       });
       const data = await res.json();
-      const rl = rateLimitMessage(res, data);
-      if (rl) {
-        setError(rl);
-        return;
-      }
+      if (gateApiResponse(res, data)) return;
       if (!res.ok) {
         setError(typeof data.error === 'string' ? data.error : 'Search failed.');
         return;
@@ -384,6 +403,7 @@ export function HomeQuickVerify() {
           onChange={(e) => {
             setStateCode(e.target.value as QuickState);
             setError(null);
+            setErrorHint('none');
             setResults(null);
           }}
           className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-900 outline-none ring-[#1A56DB] focus:ring-2"
@@ -400,6 +420,7 @@ export function HomeQuickVerify() {
           onClick={() => {
             setMode('license');
             setError(null);
+            setErrorHint('none');
             setResults(null);
           }}
           className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
@@ -415,6 +436,7 @@ export function HomeQuickVerify() {
           onClick={() => {
             setMode('name');
             setError(null);
+            setErrorHint('none');
             setResults(null);
           }}
           className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
@@ -543,12 +565,27 @@ export function HomeQuickVerify() {
       </form>
 
       <p className="border-t border-slate-100 px-4 py-3 text-left text-xs text-slate-500">
-        Quick check for California, Florida, and Texas. Texas name search opens the official TOPS site; use TOPS person ID with By license to verify here.
-        Sign in to continue on the full verify page.
+        Quick check for California, Florida, and Texas. Sign in for free (1 verification per day) or upgrade for unlimited. Texas name search opens the official TOPS site; use TOPS person ID with By license to verify here.
       </p>
 
       {error && (
-        <div className="border-t border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700">{error}</div>
+        <div className="border-t border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700">
+          <p>{error}</p>
+          {errorHint === 'login' ? (
+            <p className="mt-2">
+              <Link href="/login" className="font-semibold text-[#1A56DB] underline">
+                Sign in
+              </Link>
+            </p>
+          ) : null}
+          {errorHint === 'pricing' ? (
+            <p className="mt-2">
+              <Link href="/pricing" className="font-semibold text-[#1A56DB] underline">
+                View plans
+              </Link>
+            </p>
+          ) : null}
+        </div>
       )}
 
       {results && results.length > 0 && (
@@ -568,6 +605,11 @@ export function HomeQuickVerify() {
                 {result.stateCode || stateCode}
                 {result.licenseNumber != null && result.licenseNumber !== '' ? ` · #${result.licenseNumber}` : ''}
               </p>
+              {result.zipCode ? (
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  <span className="text-slate-400">ZIP</span> {result.zipCode}
+                </p>
+              ) : null}
               {result.expirationDate && (
                 <p className="mt-1 text-[11px] text-slate-500">
                   Expires {new Date(result.expirationDate).toLocaleDateString()}

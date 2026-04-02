@@ -40,6 +40,8 @@ export type TexasLicenseRecord = {
   issued_on: string | null;
   expiration_date: string | null;
   status: string | null;
+  /** Physical / mailing ZIP when detected on the TOPS detail page */
+  zip_code?: string | null;
 };
 
 export type TexasLookupSuccess = {
@@ -325,7 +327,7 @@ async function scrapeResultLinks(
 export async function scrapeDetailPage(
   page: Page,
   url: string
-): Promise<{ name: string; records: TexasLicenseRecord[] }> {
+): Promise<{ name: string; records: TexasLicenseRecord[]; zipCode: string | null }> {
   log('detail', url);
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT_MS });
   await page
@@ -334,6 +336,17 @@ export async function scrapeDetailPage(
   await delay(Math.min(staggerMs(), 180));
 
   return page.evaluate(() => {
+    function extractZipFromTexasPage(): string | null {
+      const text = document.body?.innerText || '';
+      const cityStateZip = text.match(/,\s*[A-Z]{2}\s+(\d{5})(?:-\d{4})?\b/);
+      if (cityStateZip) return cityStateZip[1];
+      const zipLine = text.match(/\bZIP\s*:?\s*(\d{5})\b/i);
+      if (zipLine) return zipLine[1];
+      return null;
+    }
+
+    const pageZip = extractZipFromTexasPage();
+
     const nameEl = document.querySelector('h1');
     const rawName = nameEl?.textContent?.trim() || '';
     const name = /^\[.*\]$/.test(rawName) ? '' : rawName;
@@ -367,6 +380,7 @@ export async function scrapeDetailPage(
       issued_on: string | null;
       expiration_date: string | null;
       status: string | null;
+      zip_code: string | null;
     }[] = [];
 
     document.querySelectorAll('th[scope="row"]').forEach((th) => {
@@ -415,10 +429,11 @@ export async function scrapeDetailPage(
         issued_on: directTds[0] || null,
         expiration_date: directTds[1] || null,
         status: directTds[2] || null,
+        zip_code: pageZip,
       });
     });
 
-    return { name, records };
+    return { name, records, zipCode: pageZip };
   });
 }
 
