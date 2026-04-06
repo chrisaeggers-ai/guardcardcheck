@@ -5,15 +5,18 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { authQuotaInfo, rateLimitMessage } from '@/lib/api-response-helpers';
+import { nevadaDerivedStatus } from '@/lib/nevada-derived-status';
 import { VerificationLoadingPanel } from '@/components/verification-loading-panel';
 
 const STORAGE_KEY_MODE = 'gcc_home_mode';
 const STORAGE_KEY_LICENSE = 'gcc_home_license';
 const STORAGE_KEY_FN = 'gcc_home_fn';
 const STORAGE_KEY_LN = 'gcc_home_ln';
+const STORAGE_KEY_CO = 'gcc_home_co';
 
 const FL_FDACS_INDIVIDUAL_URL = 'https://licensing.fdacs.gov/access/individual.aspx';
 const TX_TOPS_SEARCH_URL = 'https://tops.portal.texas.gov/psp-self-service/search/index';
+const NV_PILB_PUBLIC_URL = 'https://pilbonbaseweb.nv.gov/publicAccess/';
 
 type VerifyResult = {
   stateCode?: string;
@@ -24,10 +27,12 @@ type VerifyResult = {
   holderName?: string | null;
   zipCode?: string | null;
   status?: string;
+  issueDate?: string | null;
   expirationDate?: string | null;
+  recordUpdatedDate?: string | null;
 };
 
-type QuickState = 'CA' | 'FL' | 'TX';
+type QuickState = 'CA' | 'FL' | 'TX' | 'NV';
 type QuickMode = 'license' | 'name';
 
 type FloridaApiRow = {
@@ -37,6 +42,16 @@ type FloridaApiRow = {
   status: string | null;
   expiration_date: string | null;
   zip_code?: string | null;
+};
+
+type NevadaApiRow = {
+  name: string | null;
+  license_number: string | null;
+  company: string | null;
+  document_title: string | null;
+  record_updated: string | null;
+  expiration_date: string | null;
+  expired?: boolean;
 };
 
 function normalizeFloridaRow(r: FloridaApiRow): VerifyResult {
@@ -63,6 +78,20 @@ function normalizeFloridaRow(r: FloridaApiRow): VerifyResult {
     expirationDate: r.expiration_date
       ? new Date(`${r.expiration_date}T12:00:00`).toISOString()
       : null,
+  };
+}
+
+function normalizeNevadaRow(r: NevadaApiRow): VerifyResult {
+  return {
+    stateCode: 'NV',
+    licenseNumber: r.license_number,
+    licenseType: 'PILB — public verification',
+    credentialSpecification: r.document_title ?? undefined,
+    holderName: r.name ?? undefined,
+    status: nevadaDerivedStatus(r.expiration_date, r.expired ?? false),
+    issueDate: null,
+    expirationDate: r.expiration_date,
+    recordUpdatedDate: r.record_updated,
   };
 }
 
@@ -95,6 +124,7 @@ export function HomeQuickVerify() {
   const [license, setLicense] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [stateCode, setStateCode] = useState<QuickState>('CA');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -112,6 +142,8 @@ export function HomeQuickVerify() {
       if (fn) setFirstName(fn);
       const ln = window.localStorage.getItem(STORAGE_KEY_LN);
       if (ln) setLastName(ln);
+      const co = window.localStorage.getItem(STORAGE_KEY_CO);
+      if (co) setCompanyName(co);
     } catch {
       /* ignore */
     }
@@ -161,6 +193,7 @@ export function HomeQuickVerify() {
     const licTrim = license.trim();
     const fnTrim = firstName.trim();
     const lnTrim = lastName.trim();
+    const coTrim = companyName.trim();
 
     if (mode === 'name' && stateCode === 'TX') {
       if (isLoggedIn) {
@@ -172,13 +205,22 @@ export function HomeQuickVerify() {
       return;
     }
 
-    if (mode === 'license' && !licTrim) return;
-    if (mode === 'name' && (!fnTrim || !lnTrim)) return;
+    if (mode === 'license') {
+      if (stateCode === 'NV') {
+        if (!licTrim) return;
+      } else if (!licTrim) return;
+    }
+    if (mode === 'name') {
+      if (stateCode === 'NV') {
+        if (!((fnTrim && lnTrim) || (lnTrim && coTrim))) return;
+      } else if (!fnTrim || !lnTrim) return;
+    }
 
     try {
       window.localStorage.setItem(STORAGE_KEY_LICENSE, licTrim);
       window.localStorage.setItem(STORAGE_KEY_FN, fnTrim);
       window.localStorage.setItem(STORAGE_KEY_LN, lnTrim);
+      window.localStorage.setItem(STORAGE_KEY_CO, coTrim);
     } catch {
       /* ignore */
     }
@@ -192,6 +234,7 @@ export function HomeQuickVerify() {
         qs.set('tab', 'name');
         qs.set('fn', fnTrim);
         qs.set('ln', lnTrim);
+        if (stateCode === 'NV' && coTrim) qs.set('co', coTrim);
       }
       router.push(`/verify?${qs.toString()}`);
       return;
@@ -279,6 +322,32 @@ export function HomeQuickVerify() {
           return;
         }
 
+        if (stateCode === 'NV') {
+          const res = await fetch('/api/nevada-license-lookup', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ licenseNumber: licTrim }),
+          });
+          const data = await res.json();
+          if (gateApiResponse(res, data)) return;
+          if (!data.ok) {
+            setError(
+              typeof data.message === 'string'
+                ? data.message
+                : 'Nevada lookup failed. Please try again.'
+            );
+            return;
+          }
+          const rows = Array.isArray(data.results) ? data.results : [];
+          if (rows.length === 0) {
+            setError('No matching Nevada PILB documents.');
+            return;
+          }
+          setResults(rows.map((r: NevadaApiRow) => normalizeNevadaRow(r)));
+          return;
+        }
+
         const res = await fetch('/api/verify', {
           method: 'POST',
           credentials: 'include',
@@ -292,6 +361,36 @@ export function HomeQuickVerify() {
           return;
         }
         setResults([mapPublicSearchRow(data as Record<string, unknown>)]);
+        return;
+      }
+
+      if (stateCode === 'NV') {
+        const res = await fetch('/api/nevada-license-lookup', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: fnTrim || undefined,
+            lastName: lnTrim || undefined,
+            companyName: coTrim || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (gateApiResponse(res, data)) return;
+        if (!data.ok) {
+          if (data.error === 'NO_RESULTS') {
+            setResults([]);
+            return;
+          }
+          setError(
+            typeof data.message === 'string'
+              ? data.message
+              : 'Nevada search failed. Please try again.'
+          );
+          return;
+        }
+        const rows = Array.isArray(data.results) ? data.results : [];
+        setResults(rows.map((r: NevadaApiRow) => normalizeNevadaRow(r)));
         return;
       }
 
@@ -359,7 +458,9 @@ export function HomeQuickVerify() {
       ? 'TOPS person ID, e.g. 230774'
       : stateCode === 'FL'
         ? 'Florida license (e.g. D 1234567)'
-        : 'California license number';
+        : stateCode === 'NV'
+          ? 'License / work card #, or use fields below'
+          : 'California license number';
 
   const loadingTitle =
     stateCode === 'FL'
@@ -368,9 +469,13 @@ export function HomeQuickVerify() {
         : 'Checking Florida FDACS'
       : stateCode === 'TX'
         ? 'Loading Texas TOPS'
-        : mode === 'name'
-          ? 'Searching California BSIS'
-          : 'Verifying license';
+        : stateCode === 'NV'
+          ? mode === 'name'
+            ? 'Searching Nevada PILB'
+            : 'Checking Nevada PILB'
+          : mode === 'name'
+            ? 'Searching California BSIS'
+            : 'Verifying license';
   const loadingSubtitle =
     stateCode === 'FL'
       ? mode === 'name'
@@ -378,9 +483,11 @@ export function HomeQuickVerify() {
         : 'Usually 10–35 seconds.'
       : stateCode === 'TX'
         ? 'Fetching your record from the state registry…'
-        : mode === 'name'
-          ? 'The state registry can take 15–40 seconds.'
-          : 'Contacting BreEZe…';
+        : stateCode === 'NV'
+          ? 'Querying the state public document search…'
+          : mode === 'name'
+            ? 'The state registry can take 15–40 seconds.'
+            : 'Contacting BreEZe…';
 
   return (
     <div className="relative mx-auto mt-10 max-w-xl rounded-2xl border border-slate-200/80 bg-white p-2 shadow-xl shadow-slate-200/50">
@@ -405,12 +512,14 @@ export function HomeQuickVerify() {
             setError(null);
             setErrorHint('none');
             setResults(null);
+            setCompanyName('');
           }}
           className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-900 outline-none ring-[#1A56DB] focus:ring-2"
         >
           <option value="CA">California</option>
           <option value="FL">Florida</option>
           <option value="TX">Texas</option>
+          <option value="NV">Nevada</option>
         </select>
       </div>
 
@@ -451,19 +560,30 @@ export function HomeQuickVerify() {
 
       <form onSubmit={onSubmit} className="space-y-3 p-4">
         {mode === 'license' ? (
-          <div>
-            <label htmlFor="hero-license" className="mb-1 block text-xs font-medium text-slate-600">
-              {stateCode === 'TX' ? 'TOPS person ID' : 'License number'}
-            </label>
-            <input
-              id="hero-license"
-              type="text"
-              value={license}
-              onChange={(e) => setLicense(e.target.value)}
-              placeholder={licensePlaceholder}
-              className="min-h-[48px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-900 placeholder:text-slate-400 outline-none ring-[#1A56DB] focus:bg-white focus:ring-2"
-            />
-          </div>
+          <>
+            <div>
+              <label htmlFor="hero-license" className="mb-1 block text-xs font-medium text-slate-600">
+                {stateCode === 'TX'
+                  ? 'TOPS person ID'
+                  : stateCode === 'NV'
+                    ? 'License / work card / CFI #'
+                    : 'License number'}
+              </label>
+              <input
+                id="hero-license"
+                type="text"
+                value={license}
+                onChange={(e) => setLicense(e.target.value)}
+                placeholder={licensePlaceholder}
+                className="min-h-[48px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-900 placeholder:text-slate-400 outline-none ring-[#1A56DB] focus:bg-white focus:ring-2"
+              />
+            </div>
+            {stateCode === 'NV' ? (
+              <p className="text-xs text-slate-600">
+                Name or company search: switch to <strong className="text-slate-800">By name</strong>.
+              </p>
+            ) : null}
+          </>
         ) : stateCode === 'TX' ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-left">
             <p className="text-sm text-slate-700">
@@ -503,6 +623,20 @@ export function HomeQuickVerify() {
                 .
               </p>
             ) : null}
+            {stateCode === 'NV' ? (
+              <p className="text-xs text-slate-600">
+                First + last, or last + company —{' '}
+                <a
+                  href={NV_PILB_PUBLIC_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-[#1A56DB] underline"
+                >
+                  PILB search rules
+                </a>
+                .
+              </p>
+            ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label htmlFor="hero-fn" className="mb-1 block text-xs font-medium text-slate-600">
@@ -533,6 +667,21 @@ export function HomeQuickVerify() {
                 />
               </div>
             </div>
+            {stateCode === 'NV' ? (
+              <div>
+                <label htmlFor="hero-nv-co-name" className="mb-1 block text-xs font-medium text-slate-600">
+                  Company <span className="text-slate-400">(optional)</span>
+                </label>
+                <input
+                  id="hero-nv-co-name"
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="Company name"
+                  className="min-h-[48px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-900 placeholder:text-slate-400 outline-none ring-[#1A56DB] focus:bg-white focus:ring-2"
+                />
+              </div>
+            ) : null}
           </>
         )}
 
@@ -542,7 +691,10 @@ export function HomeQuickVerify() {
             disabled={
               loading ||
               (mode === 'license' && !license.trim()) ||
-              (mode === 'name' && (!firstName.trim() || !lastName.trim()))
+              (mode === 'name' &&
+                (stateCode === 'NV'
+                  ? !((firstName.trim() && lastName.trim()) || (lastName.trim() && companyName.trim()))
+                  : !firstName.trim() || !lastName.trim()))
             }
             className="min-h-[48px] w-full rounded-xl px-6 text-sm font-semibold text-white shadow-md transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
             style={{ backgroundColor: '#1A56DB' }}
@@ -610,11 +762,29 @@ export function HomeQuickVerify() {
                   <span className="text-slate-400">ZIP</span> {result.zipCode}
                 </p>
               ) : null}
-              {result.expirationDate && (
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Expires {new Date(result.expirationDate).toLocaleDateString()}
-                </p>
-              )}
+              {result.issueDate || result.expirationDate || result.recordUpdatedDate ? (
+                <div className="mt-1.5 space-y-0.5 text-[11px] text-slate-500">
+                  {result.issueDate ? (
+                    <p>
+                      <span className="text-slate-400">Issued</span>{' '}
+                      {new Date(result.issueDate).toLocaleDateString()}
+                    </p>
+                  ) : null}
+                  {result.expirationDate ? (
+                    <p>
+                      <span className="text-slate-400">Expires</span>{' '}
+                      {new Date(result.expirationDate).toLocaleDateString()}
+                    </p>
+                  ) : null}
+                  {result.recordUpdatedDate ? (
+                    <p>
+                      <span className="text-slate-400">Record updated</span>{' '}
+                      <span className="text-slate-500">(state listing)</span>{' '}
+                      {new Date(result.recordUpdatedDate).toLocaleDateString()}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

@@ -298,8 +298,8 @@ const STATES = {
     },
     access: {
       type: ACCESS_TYPE.PORTAL_SCRAPE,
-      portalUrl: 'https://pilb.nv.gov/Work_Cards/Search/',
-      notes: 'PILB has a public work card search portal. Las Vegas casino industry drives high compliance culture.',
+      portalUrl: 'https://pilbonbaseweb.nv.gov/publicAccess/',
+      notes: 'PILB public document search (OBPA). Wildcard rules: ~3 letters + * for names; prefix + * for license #.',
     },
     licenses: {
       WORK_CARD: {
@@ -330,7 +330,7 @@ const STATES = {
     searchFields: ['licenseNumber', 'firstName', 'lastName'],
     licenseFormat: /^(WC|FC)?\d{5,8}$/i,
     notes: 'Smaller population but Las Vegas casino/event security is enormous and extremely compliance-conscious.',
-    launched: false,
+    launched: true,
   },
 
   OR: {

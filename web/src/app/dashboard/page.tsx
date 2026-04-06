@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isInternalAnalystEmail } from '@/lib/internal-access';
 import { LogoutButton } from './logout-button';
 import { BillingButton } from './billing-button';
 import { SearchHistoryPanel } from './search-history-panel';
@@ -55,42 +56,51 @@ export default async function DashboardPage() {
   const guardsMonitored = 0;
 
   const planActive = subscriptionStatus === 'active' || subscriptionStatus === 'trialing';
+  const showInternalGrowthLink = isInternalAnalystEmail(user.email);
 
   return (
     <div className="min-h-screen bg-[#0B1F3A] text-slate-100">
       <header className="border-b border-white/10 bg-[#0B1F3A]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-6 py-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/" className="text-lg font-semibold tracking-tight text-white">
-              GuardCardCheck
-            </Link>
-            <span className="hidden text-slate-500 sm:inline">|</span>
-            <span className="text-sm text-slate-300">{user.email}</span>
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                planActive
-                  ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
-                  : 'bg-slate-600/40 text-slate-300 ring-1 ring-white/10'
-              }`}
-            >
-              {planConfig.name}
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="mx-auto flex max-w-5xl flex-nowrap items-center gap-2 overflow-x-auto px-6 py-4 [scrollbar-width:thin] sm:gap-3 sm:py-5">
+          <Link href="/" className="shrink-0 text-lg font-semibold tracking-tight text-white">
+            GuardCardCheck
+          </Link>
+          <span className="shrink-0 text-slate-500">|</span>
+          <span className="max-w-[min(280px,50vw)] shrink truncate text-sm text-slate-300 sm:max-w-md">
+            {user.email}
+          </span>
+          <span
+            className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              planActive
+                ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
+                : 'bg-slate-600/40 text-slate-300 ring-1 ring-white/10'
+            }`}
+          >
+            {planConfig.name}
+          </span>
+          {showInternalGrowthLink ? (
             <Link
-              href="/auth/update-password"
-              className="rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-[#1A56DB]/50 hover:bg-white/10 hover:text-white"
+              href="/internal/growth"
+              className="shrink-0 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-100 shadow-sm transition hover:border-amber-300/60 hover:bg-amber-500/20 sm:px-4"
             >
-              Change password
+              Growth &amp; sales dashboard
             </Link>
-            <Link
-              href="/"
-              className="rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-[#1A56DB]/50 hover:bg-white/10 hover:text-white"
-            >
-              Back to home
-            </Link>
+          ) : null}
+          <Link
+            href="/auth/update-password"
+            className="shrink-0 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-[#1A56DB]/50 hover:bg-white/10 hover:text-white sm:px-4"
+          >
+            Change password
+          </Link>
+          <Link
+            href="/"
+            className="shrink-0 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-[#1A56DB]/50 hover:bg-white/10 hover:text-white sm:px-4"
+          >
+            Back to home
+          </Link>
+          <span className="shrink-0">
             <LogoutButton />
-          </div>
+          </span>
         </div>
       </header>
 

@@ -94,3 +94,36 @@ export function summarizeTexasResults(
     summary: `${n} Texas result${n === 1 ? '' : 's'} for “${q.slice(0, 80)}${q.length > 80 ? '…' : ''}”`,
   };
 }
+
+export type NevadaSummaryParams = {
+  licenseNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+};
+
+export function summarizeNevadaResults(
+  params: NevadaSummaryParams,
+  n: number
+): { outcome: SearchHistoryOutcome; summary: string; primary: string; secondary: string | null } {
+  const bits: string[] = [];
+  if (params.licenseNumber?.trim()) bits.push(params.licenseNumber.trim());
+  const name = [params.firstName, params.lastName].filter((x) => x?.trim()).join(' ').trim();
+  if (name) bits.push(name);
+  if (params.companyName?.trim()) bits.push(params.companyName.trim());
+  const primary = bits.join(' · ').slice(0, 512) || 'Nevada PILB';
+  if (n === 0) {
+    return {
+      outcome: 'not_found',
+      summary: 'No Nevada PILB public verification documents',
+      primary,
+      secondary: null,
+    };
+  }
+  return {
+    outcome: 'success',
+    summary: `${n} Nevada PILB document${n === 1 ? '' : 's'}`,
+    primary,
+    secondary: null,
+  };
+}

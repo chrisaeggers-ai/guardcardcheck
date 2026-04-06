@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState, Suspense, type CSSProperties } from 'react';
 import { authQuotaInfo, rateLimitMessage } from '@/lib/api-response-helpers';
+import { nevadaDerivedStatus } from '@/lib/nevada-derived-status';
 import { VerificationLoadingPanel } from '@/components/verification-loading-panel';
 
 const NAVY = '#0B1F3A';
@@ -12,17 +13,19 @@ const GREEN = '#059669';
 const RED = '#DC2626';
 const AMBER = '#D97706';
 
-const STATE_CODES = ['CA', 'FL', 'TX'] as const;
+const STATE_CODES = ['CA', 'FL', 'TX', 'NV'] as const;
 type StateCode = (typeof STATE_CODES)[number];
 
 /** Official portals for name search when in-app automation is not available or secondary. */
 const FL_FDACS_INDIVIDUAL_URL = 'https://licensing.fdacs.gov/access/individual.aspx';
 const TX_TOPS_SEARCH_URL = 'https://tops.portal.texas.gov/psp-self-service/search/index';
+const NV_PILB_PUBLIC_URL = 'https://pilbonbaseweb.nv.gov/publicAccess/';
 
 const LICENSE_PLACEHOLDERS: Record<StateCode, string> = {
   CA: 'e.g. 1441140 or G1234567',
   FL: 'e.g. D 1234567 or G 3106934',
   TX: 'e.g. 230774 (TOPS person ID, digits only)',
+  NV: 'e.g. 250* or combine with name/company fields',
 };
 
 type AccessLabel = 'Official API' | 'Portal scrape' | 'Bulk records';
@@ -78,6 +81,17 @@ const COVERAGE: CoverageState[] = [
       { label: 'Class B company', variant: 'company' },
     ],
   },
+  {
+    code: 'NV',
+    name: 'Nevada',
+    agency: 'Private Investigators Licensing Board (PILB)',
+    access: 'Portal scrape',
+    tags: [
+      { label: 'Work card', variant: 'unarmed' },
+      { label: 'Firearms cert', variant: 'armed' },
+      { label: 'PPO business', variant: 'company' },
+    ],
+  },
 ];
 
 const COVERAGE_COMING_SOON: ComingSoonCoverage[] = [
@@ -101,17 +115,6 @@ const COVERAGE_COMING_SOON: ComingSoonCoverage[] = [
       { label: 'Unarmed', variant: 'unarmed' },
       { label: 'Armed', variant: 'armed' },
       { label: 'Business', variant: 'company' },
-    ],
-  },
-  {
-    code: 'NV',
-    name: 'Nevada',
-    agency: 'Private Investigators Licensing Board (PILB)',
-    access: 'Portal scrape',
-    tags: [
-      { label: 'Work card', variant: 'unarmed' },
-      { label: 'Firearms cert', variant: 'armed' },
-      { label: 'PPO business', variant: 'company' },
     ],
   },
   {
@@ -175,6 +178,8 @@ interface VerificationResult {
   status: string;
   issueDate?: string | null;
   expirationDate?: string | null;
+  /** PILB list "Updated" date when issue not available (ISO YYYY-MM-DD) */
+  recordUpdatedDate?: string | null;
   isArmed?: boolean;
   error?: string;
   agencyName?: string | null;
@@ -214,6 +219,26 @@ interface TexasApiResponse {
   ok: boolean;
   cached?: boolean;
   results?: TexasApiRecord[];
+  error?: string;
+  message?: string;
+}
+
+/** Response from /api/nevada-license-lookup */
+interface NevadaApiRecord {
+  name: string | null;
+  license_number: string | null;
+  company: string | null;
+  document_title: string | null;
+  record_updated: string | null;
+  expiration_date: string | null;
+  /** Explicit PILB expired indicator (field/column/title) — see `nevadaDerivedStatus` */
+  expired?: boolean;
+}
+
+interface NevadaApiResponse {
+  ok: boolean;
+  cached?: boolean;
+  results?: NevadaApiRecord[];
   error?: string;
   message?: string;
 }
@@ -283,6 +308,28 @@ function mapTexasRecordsToVerification(
       `${row.license_type} ${row.section}`
     ),
     agencyName: 'Private Security Bureau (DPS)',
+    fromCache,
+  }));
+}
+
+function mapNevadaRecordsToVerification(
+  rows: NevadaApiRecord[],
+  fromCache: boolean
+): VerificationResult[] {
+  return rows.map((row) => ({
+    stateCode: 'NV',
+    stateName: 'Nevada',
+    licenseNumber: row.license_number,
+    licenseType: 'PILB — public verification document',
+    credentialSpecification: row.document_title,
+    holderName: row.name,
+    zipCode: null,
+    status: nevadaDerivedStatus(row.expiration_date, row.expired ?? false),
+    issueDate: null,
+    expirationDate: row.expiration_date,
+    recordUpdatedDate: row.record_updated,
+    isArmed: false,
+    agencyName: 'Private Investigators Licensing Board (PILB)',
     fromCache,
   }));
 }
@@ -362,11 +409,14 @@ function credentialCategoryLabel(cat: string | null | undefined): string | null 
 function ResultCard({ row }: { row: VerificationResult }) {
   const issue = parseDate(row.issueDate ?? undefined);
   const exp = parseDate(row.expirationDate ?? undefined);
+  const recordUp = parseDate(row.recordUpdatedDate ?? undefined);
   const dLeft = daysUntil(exp);
   const remainingPct = expiryRemainingPercent(issue, exp);
   const st = row.status.toUpperCase();
   const expiringSoon = st === 'ACTIVE' && dLeft !== null && dLeft > 0 && dLeft <= 60;
   const barColor = remainingPct > 25 ? GREEN : remainingPct > 0 ? AMBER : RED;
+  const showNvDateNote =
+    row.stateCode === 'NV' && !issue && !exp && !recordUp;
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur">
@@ -411,13 +461,31 @@ function ResultCard({ row }: { row: VerificationResult }) {
       <dl className="mt-6 grid gap-4 sm:grid-cols-2">
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Issued</dt>
-          <dd className="mt-1 text-sm text-slate-200">{formatDisplayDate(issue)}</dd>
+          <dd className="mt-1 text-sm text-slate-200">
+            {issue ? formatDisplayDate(issue) : '—'}
+          </dd>
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Expires</dt>
-          <dd className="mt-1 text-sm text-slate-200">{formatDisplayDate(exp)}</dd>
+          <dd className="mt-1 text-sm text-slate-200">
+            {exp ? formatDisplayDate(exp) : '—'}
+          </dd>
         </div>
+        {recordUp ? (
+          <div className="sm:col-span-2">
+            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Record updated <span className="font-normal normal-case text-slate-600">(state listing)</span>
+            </dt>
+            <dd className="mt-1 text-sm text-slate-200">{formatDisplayDate(recordUp)}</dd>
+          </div>
+        ) : null}
       </dl>
+      {showNvDateNote ? (
+        <p className="mt-3 text-xs text-slate-500">
+          Issue and expiration are not always included in the PILB search preview. Open the full verification document
+          on the state site for definitive dates.
+        </p>
+      ) : null}
 
       {exp && (st === 'ACTIVE' || st === 'PENDING') ? (
         <div className="mt-4">
@@ -482,6 +550,12 @@ function verificationLoadingCopy(stateCode: StateCode, nameSearch: boolean) {
         : 'Fetching your TOPS record…',
     };
   }
+  if (stateCode === 'NV') {
+    return {
+      title: nameSearch ? 'Searching Nevada PILB' : 'Checking Nevada PILB',
+      subtitle: 'Querying the official public document search…',
+    };
+  }
   return nameSearch
     ? {
         title: 'Searching California BSIS',
@@ -500,6 +574,21 @@ function VerifyPageContent() {
   const [licenseNumber, setLicenseNumber] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [companyName, setCompanyName] = useState('');
+
+  /** License tab: NV only accepts license/work card # (name search uses the other tab). */
+  const nvLicenseSearchOk = useMemo(() => {
+    if (stateCode !== 'NV') return true;
+    return licenseNumber.trim().length > 0;
+  }, [stateCode, licenseNumber]);
+
+  const nvNameSearchOk = useMemo(() => {
+    if (stateCode !== 'NV') return true;
+    const f = firstName.trim();
+    const l = lastName.trim();
+    const c = companyName.trim();
+    return Boolean((f && l) || (l && c));
+  }, [stateCode, firstName, lastName, companyName]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -539,6 +628,8 @@ function VerifyPageContent() {
     const ln = searchParams.get('ln') ?? searchParams.get('lastName');
     if (fn) setFirstName(fn);
     if (ln) setLastName(ln);
+    const co = searchParams.get('co') ?? searchParams.get('company');
+    if (co) setCompanyName(co);
   }, [searchParams]);
 
   async function onVerifyLicense(e: React.FormEvent) {
@@ -625,6 +716,48 @@ function VerifyPageContent() {
         return;
       }
 
+      if (stateCode === 'NV') {
+        const res = await fetch('/api/nevada-license-lookup', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            licenseNumber: licenseNumber.trim() || undefined,
+          }),
+        });
+        const data = (await res.json().catch(() => ({}))) as NevadaApiResponse;
+        if (gateApiResponse(res, data)) return;
+        if (!data.ok) {
+          if (data.error === 'NO_RESULTS') {
+            setVerifyResult({
+              status: 'NOT_FOUND',
+              stateCode: 'NV',
+              stateName: 'Nevada',
+              licenseNumber: licenseNumber.trim() || null,
+              agencyName: 'Private Investigators Licensing Board (PILB)',
+            });
+            return;
+          }
+          setError(typeof data.message === 'string' ? data.message : 'Nevada lookup failed.');
+          return;
+        }
+        const list = mapNevadaRecordsToVerification(data.results ?? [], Boolean(data.cached));
+        if (list.length === 0) {
+          setVerifyResult({
+            status: 'NOT_FOUND',
+            stateCode: 'NV',
+            stateName: 'Nevada',
+            licenseNumber: licenseNumber.trim() || null,
+            agencyName: 'Private Investigators Licensing Board (PILB)',
+          });
+        } else if (list.length === 1) {
+          setVerifyResult(list[0]!);
+        } else {
+          setSearchResults(list);
+        }
+        return;
+      }
+
       const res = await fetch('/api/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -653,6 +786,32 @@ function VerifyPageContent() {
     setLoading(true);
     setSearchResults(null);
     try {
+      if (stateCode === 'NV') {
+        const res = await fetch('/api/nevada-license-lookup', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: firstName.trim() || undefined,
+            lastName: lastName.trim() || undefined,
+            companyName: companyName.trim() || undefined,
+          }),
+        });
+        const data = (await res.json().catch(() => ({}))) as NevadaApiResponse;
+        if (gateApiResponse(res, data)) return;
+        if (!data.ok) {
+          if (data.error === 'NO_RESULTS') {
+            setSearchResults([]);
+            return;
+          }
+          setError(typeof data.message === 'string' ? data.message : 'Nevada search failed.');
+          return;
+        }
+        const list = mapNevadaRecordsToVerification(data.results ?? [], Boolean(data.cached));
+        setSearchResults(list);
+        return;
+      }
+
       if (stateCode === 'FL') {
         const res = await fetch('/api/florida-license-lookup', {
           method: 'POST',
@@ -753,7 +912,7 @@ function VerifyPageContent() {
           <p className="text-center text-sm font-medium uppercase tracking-[0.2em] text-slate-400">GuardCardCheck.com</p>
           <h1 className="mt-3 text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">Guard license verification</h1>
           <p className="mx-auto mt-3 max-w-2xl text-center text-slate-300">
-            Verify security guard credentials for California, Florida, and Texas — by license number, by name (where supported), or upload a roster from your dashboard.
+            Verify security guard credentials for California, Florida, Texas, and Nevada — by license number, by name (where supported), or upload a roster from your dashboard.
           </p>
 
           <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.06] p-1 shadow-2xl backdrop-blur">
@@ -799,6 +958,7 @@ function VerifyPageContent() {
                         setErrorHint('none');
                         setVerifyResult(null);
                         setSearchResults(null);
+                        setCompanyName('');
                       }}
                       className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none ring-[#1A56DB] focus:ring-2"
                     >
@@ -828,9 +988,25 @@ function VerifyPageContent() {
                       to search by name.
                     </p>
                   ) : null}
+                  {stateCode === 'NV' ? (
+                    <p className="text-xs text-slate-400">
+                      Nevada: enter a license/work card/CFI number here (we add a{' '}
+                      <code className="text-slate-300">*</code> prefix match when needed). For first/last or company
+                      search, use <strong className="text-slate-300">By Guard Name</strong>. Official portal:{' '}
+                      <a
+                        href={NV_PILB_PUBLIC_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#93C5FD] underline underline-offset-2 hover:text-white"
+                      >
+                        PILB public document search
+                      </a>
+                      .
+                    </p>
+                  ) : null}
                   <div>
                     <label htmlFor="lic-num" className="block text-sm font-medium text-slate-300">
-                      {stateCode === 'TX' ? 'TOPS person ID' : 'License number'}
+                      {stateCode === 'TX' ? 'TOPS person ID' : stateCode === 'NV' ? 'License / work card / CFI #' : 'License number'}
                     </label>
                     <input
                       id="lic-num"
@@ -842,7 +1018,7 @@ function VerifyPageContent() {
                   </div>
                   <button
                     type="submit"
-                    disabled={loading || !licenseNumber.trim()}
+                    disabled={loading || (stateCode === 'NV' ? !nvLicenseSearchOk : !licenseNumber.trim())}
                     className="w-full rounded-lg py-3 text-sm font-semibold text-white transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
                     style={{ backgroundColor: BLUE }}
                   >
@@ -910,6 +1086,7 @@ function VerifyPageContent() {
                           setErrorHint('none');
                           setVerifyResult(null);
                           setSearchResults(null);
+                          setCompanyName('');
                         }}
                         className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:ring-2 focus:ring-[#1A56DB]"
                       >
@@ -932,6 +1109,21 @@ function VerifyPageContent() {
                           official FDACS license lookup
                         </a>
                         .
+                      </p>
+                    ) : null}
+                    {stateCode === 'NV' ? (
+                      <p className="text-xs text-slate-400">
+                        Use <strong className="text-slate-300">first + last name</strong>, or{' '}
+                        <strong className="text-slate-300">last name + company</strong>. At least 3 letters per field; we match the{' '}
+                        <a
+                          href={NV_PILB_PUBLIC_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#93C5FD] underline underline-offset-2 hover:text-white"
+                        >
+                          PILB
+                        </a>{' '}
+                        wildcard rules.
                       </p>
                     ) : null}
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -960,9 +1152,28 @@ function VerifyPageContent() {
                         />
                       </div>
                     </div>
+                    {stateCode === 'NV' ? (
+                      <div>
+                        <label htmlFor="nv-co-name" className="block text-sm font-medium text-slate-300">
+                          Company name <span className="text-slate-500">(optional)</span>
+                        </label>
+                        <input
+                          id="nv-co-name"
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                          placeholder="e.g. ABC Security"
+                          className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#1A56DB]"
+                        />
+                      </div>
+                    ) : null}
                     <button
                       type="submit"
-                      disabled={loading || !firstName.trim() || !lastName.trim()}
+                      disabled={
+                        loading ||
+                        (stateCode === 'NV'
+                          ? !nvNameSearchOk
+                          : !firstName.trim() || !lastName.trim())
+                      }
                       className="w-full rounded-lg py-3 text-sm font-semibold text-white transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
                       style={{ backgroundColor: BLUE }}
                     >

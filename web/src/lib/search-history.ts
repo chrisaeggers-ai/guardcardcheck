@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type SearchHistorySource = 'verify' | 'name_search' | 'florida' | 'texas';
+export type SearchHistorySource = 'verify' | 'name_search' | 'florida' | 'texas' | 'nevada';
 
 export type SearchHistoryOutcome = 'success' | 'not_found' | 'error';
 

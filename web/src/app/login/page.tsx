@@ -1,14 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getBrowserSiteUrl } from '@/lib/site-url';
 
 const BLUE = '#1A56DB';
 const NAVY = '#0B1F3A';
 const GREEN = '#059669';
+
+function safeNextPath(next: string | null): string {
+  if (!next || !next.startsWith('/') || next.startsWith('//')) return '/dashboard';
+  return next;
+}
 
 function looksLikeEmailNotConfirmed(message: string) {
   const m = message.toLowerCase();
@@ -19,8 +24,9 @@ function looksLikeEmailNotConfirmed(message: string) {
   );
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +58,8 @@ export default function LoginPage() {
       setShowResend(looksLikeEmailNotConfirmed(err.message));
       return;
     }
-    router.push('/dashboard');
+    const next = safeNextPath(searchParams.get('next'));
+    router.push(next);
     router.refresh();
   }
 
@@ -171,5 +178,22 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main
+          className="flex min-h-screen items-center justify-center px-4 py-12"
+          style={{ background: `linear-gradient(180deg, ${NAVY} 0%, #0a1930 100%)` }}
+        >
+          <div className="text-sm text-slate-400">Loading…</div>
+        </main>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

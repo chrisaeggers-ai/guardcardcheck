@@ -8,6 +8,7 @@ const SOURCE_LABEL: Record<string, string> = {
   name_search: 'Name search',
   florida: 'Florida',
   texas: 'Texas',
+  nevada: 'Nevada',
 };
 
 type HistoryRow = {

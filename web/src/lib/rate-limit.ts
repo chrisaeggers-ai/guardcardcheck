@@ -102,6 +102,9 @@ export function ruleForPathname(pathname: string): RateLimitRule | null {
   if (pathname.startsWith('/api/florida-license-lookup')) {
     return { id: 'florida-scraper', limit: LIMITS.scraper, windowMs: w };
   }
+  if (pathname.startsWith('/api/nevada-license-lookup')) {
+    return { id: 'nevada-pilb', limit: LIMITS.scraper, windowMs: w };
+  }
   if (pathname.startsWith('/api/search-public')) {
     return { id: 'search-public', limit: LIMITS.searchPublic, windowMs: w };
   }

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getBrowserSiteUrl } from '@/lib/site-url';
+import { isValidUsPhone } from '@/lib/phone';
 
 const BLUE = '#1A56DB';
 const NAVY = '#0B1F3A';
@@ -13,6 +14,7 @@ const GREEN = '#059669';
 export default function RegisterPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -33,6 +35,10 @@ export default function RegisterPage() {
       setError('Password must be at least 6 characters.');
       return;
     }
+    if (!isValidUsPhone(phone)) {
+      setError('Enter a valid US phone number (10 digits).');
+      return;
+    }
 
     setLoading(true);
     const supabase = createClient();
@@ -42,21 +48,35 @@ export default function RegisterPage() {
       password,
       options: {
         emailRedirectTo: `${site}/auth/callback?next=/dashboard`,
-        data: { full_name: fullName.trim() },
+        data: { full_name: fullName.trim(), phone: phone.trim() },
       },
     });
-    setLoading(false);
 
     if (err) {
+      setLoading(false);
       setError(err.message);
       return;
     }
 
     if (data.session) {
+      const boot = await fetch('/api/profile/bootstrap', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone.trim() }),
+      });
+      setLoading(false);
+      if (!boot.ok) {
+        const j = (await boot.json().catch(() => ({}))) as { error?: string };
+        setError(j.error || 'Could not save phone. Try again or contact support.');
+        return;
+      }
       router.push('/dashboard');
       router.refresh();
       return;
     }
+
+    setLoading(false);
 
     setInfo(
       'Check your email for a confirmation link. After you confirm, you will be signed in and taken to your dashboard.'
@@ -105,6 +125,19 @@ export default function RegisterPage() {
               className="rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-white/20 focus:ring-2 focus:ring-[#1A56DB]/50"
               autoComplete="name"
             />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-slate-300">Mobile phone</span>
+            <input
+              type="tel"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. (555) 123-4567"
+              className="rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-white/20 focus:ring-2 focus:ring-[#1A56DB]/50"
+              autoComplete="tel"
+            />
+            <span className="text-xs text-slate-500">US number — required for account security and updates.</span>
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-slate-300">Email</span>
