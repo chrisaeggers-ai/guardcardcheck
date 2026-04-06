@@ -168,8 +168,8 @@ export default async function DashboardPage() {
               href="#roster-upload"
               className="group rounded-xl border border-white/10 bg-slate-800/40 p-5 transition hover:border-[#1A56DB]/50 hover:bg-slate-800/70"
             >
-              <p className="font-medium text-white">Upload roster CSV</p>
-              <p className="mt-1 text-sm text-slate-400">Bulk-verify licenses from a spreadsheet (Business+).</p>
+              <p className="font-medium text-white">Import roster (CSV or Google Sheets)</p>
+              <p className="mt-1 text-sm text-slate-400">Bulk-verify licenses including CA, FL, TX, NV (Business+).</p>
               <span className="mt-3 inline-block text-sm font-medium text-[#1A56DB] group-hover:underline">
                 Go to upload →
               </span>

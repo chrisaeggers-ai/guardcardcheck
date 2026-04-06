@@ -1186,14 +1186,17 @@ function VerifyPageContent() {
               {tab === 'roster' ? (
                 <div className="space-y-4 rounded-xl border border-dashed border-white/20 bg-black/20 px-4 py-8 text-left sm:px-6">
                   <p className="text-sm text-slate-300">
-                    Upload a <strong className="text-white">CSV</strong> with columns for state and license number
-                    (optional guard name). Business and Enterprise plans can run batch verification up to 200 or 5,000
-                    rows per file; each row uses your monthly search allowance (cached repeats count less).
+                    On the dashboard, import a <strong className="text-white">CSV</strong> or connect a{' '}
+                    <strong className="text-white">Google Sheet</strong> (same columns: state + license; optional name).
+                    Business and Enterprise plans can run batch verification up to 200 or 5,000 rows; each row uses your
+                    monthly search allowance (cached repeats count less). Batch includes{' '}
+                    <strong className="text-white">Nevada (NV)</strong> via the same PILB lookup as single checks.
                   </p>
                   <ul className="list-inside list-disc text-xs text-slate-500">
                     <li>Required headers: e.g. <code className="text-slate-400">stateCode</code>,{' '}
                     <code className="text-slate-400">licenseNumber</code> (aliases: State, License)</li>
                     <li>Optional: <code className="text-slate-400">guardName</code> or Name</li>
+                    <li>Google Sheets: share as “Anyone with the link” (Viewer) or publish, then paste the sheet URL</li>
                   </ul>
                   <Link
                     href="/dashboard#roster-upload"

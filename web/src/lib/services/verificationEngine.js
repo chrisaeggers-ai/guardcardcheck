@@ -119,6 +119,61 @@ async function verifyFloridaWithPuppeteer(licenseNumber) {
   });
 }
 
+/**
+ * Nevada batch/manual must use the same PILB OBPA JSON API as the web app (public document search),
+ * not the legacy work-card HTML form (often stale).
+ */
+async function verifyNevadaWithPilbApi(licenseNumber) {
+  const { lookupNevadaPilb } = await import('@/lib/nevada-license-lookup');
+  const { nevadaDerivedStatus } = await import('@/lib/nevada-derived-status');
+  const adapter = ADAPTERS.NV;
+  const trim = licenseNumber.trim();
+  const lookup = await lookupNevadaPilb({ licenseNumber: trim });
+  if (!lookup.ok) {
+    if (lookup.error === 'NO_RESULTS') {
+      return adapter.normalize({ status: 'NOT_FOUND', licenseNumber: trim });
+    }
+    return {
+      stateCode: 'NV',
+      stateName: adapter.state.name,
+      licenseNumber: trim,
+      licenseType: null,
+      licenseTypeCode: null,
+      holderName: null,
+      status: 'VERIFICATION_ERROR',
+      issueDate: null,
+      expirationDate: null,
+      isArmed: false,
+      companyName: null,
+      agencyName: adapter.state.agency.name,
+      portalUrl: adapter.state.access.portalUrl,
+      verifiedAt: new Date().toISOString(),
+      error: 'Unable to retrieve license status. Please try again.',
+      errorDetail: process.env.NODE_ENV === 'development' ? lookup.message : undefined,
+      retryAfter: 60,
+    };
+  }
+  const rows = lookup.results;
+  if (!rows.length) {
+    return adapter.normalize({ status: 'NOT_FOUND', licenseNumber: trim });
+  }
+  const r = rows[0];
+  const statusStr = nevadaDerivedStatus(r.expiration_date, r.expired);
+  const normalized = adapter.normalize({
+    licenseNumber: r.license_number || trim,
+    holderName: r.name || null,
+    status: statusStr,
+    licenseType: 'PILB — public verification document',
+    licenseTypeCode: 'WC',
+    credentialSpecification: r.document_title || null,
+    expirationDate: r.expiration_date ? new Date(`${r.expiration_date}T12:00:00`) : null,
+    issueDate: null,
+    isArmed: false,
+    zipCode: null,
+  });
+  return { ...normalized, fromCache: lookup.cached };
+}
+
 // ============================================================
 // Verification Functions
 // ============================================================
@@ -160,7 +215,9 @@ async function verifyLicense(stateCode, licenseNumber, options = {}) {
     const result =
       state === 'FL'
         ? await verifyFloridaWithPuppeteer(licenseNumber)
-        : await adapter.verify(licenseNumber);
+        : state === 'NV'
+          ? await verifyNevadaWithPilbApi(licenseNumber)
+          : await adapter.verify(licenseNumber);
     if (result.status !== 'VERIFICATION_ERROR') {
       const ttl =
         result && result.status === 'NOT_FOUND' ? CACHE_TTL_NOT_FOUND_MS : CACHE_TTL_MS;

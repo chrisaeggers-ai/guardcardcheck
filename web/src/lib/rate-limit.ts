@@ -96,6 +96,9 @@ export function ruleForPathname(pathname: string): RateLimitRule | null {
   if (pathname.startsWith('/api/verify/batch')) {
     return { id: 'verify-batch', limit: LIMITS.verifyBatch, windowMs: w };
   }
+  if (pathname.startsWith('/api/roster/fetch-google-sheet')) {
+    return { id: 'roster-google-sheet', limit: LIMITS.verifyBatch, windowMs: w };
+  }
   if (pathname.startsWith('/api/texas-license-lookup')) {
     return { id: 'texas-scraper', limit: LIMITS.scraper, windowMs: w };
   }

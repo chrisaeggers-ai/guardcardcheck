@@ -65,6 +65,9 @@ export function RosterUploadPanel({
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [result, setResult] = useState<BatchApiResult | null>(null);
+  const [sheetUrl, setSheetUrl] = useState('');
+  const [sheetLoading, setSheetLoading] = useState(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
 
   const remaining = useMemo(() => {
     if (monthlySearchLimit == null) return null;
@@ -80,10 +83,12 @@ export function RosterUploadPanel({
     (file: File | null) => {
       setResult(null);
       setApiError(null);
+      setSheetError(null);
       setParseErrors([]);
       setRoster([]);
       setSkipped(0);
       setFileName(null);
+      setSheetUrl('');
       if (!file) return;
 
       if (!file.name.toLowerCase().endsWith('.csv')) {
@@ -115,6 +120,53 @@ export function RosterUploadPanel({
     [maxRows]
   );
 
+  async function loadFromGoogleSheet() {
+    setResult(null);
+    setApiError(null);
+    setSheetError(null);
+    setParseErrors([]);
+    setRoster([]);
+    setSkipped(0);
+    setFileName(null);
+    const raw = sheetUrl.trim();
+    if (!raw) {
+      setSheetError('Paste your Google Sheets link or spreadsheet ID.');
+      return;
+    }
+    setSheetLoading(true);
+    try {
+      const res = await fetch('/api/roster/fetch-google-sheet', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sheetUrl: raw }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        records?: Record<string, string>[];
+        spreadsheetId?: string;
+      };
+      if (!res.ok) {
+        setSheetError(typeof data.error === 'string' ? data.error : 'Could not load Google Sheet.');
+        return;
+      }
+      const records = Array.isArray(data.records) ? data.records : [];
+      const mapped = mapRecordsToRoster(records, maxRows);
+      const label =
+        typeof data.spreadsheetId === 'string'
+          ? `Google Sheet ${data.spreadsheetId.slice(0, 8)}…`
+          : 'Google Sheet';
+      setFileName(label);
+      setRoster(mapped.roster);
+      setSkipped(mapped.skipped);
+      setParseErrors(mapped.errors);
+    } catch {
+      setSheetError('Network error.');
+    } finally {
+      setSheetLoading(false);
+    }
+  }
+
   async function runBatch() {
     if (roster.length === 0) return;
     setLoading(true);
@@ -143,29 +195,30 @@ export function RosterUploadPanel({
   if (!batchEnabled) {
     return (
       <div id="roster-upload" className="scroll-mt-24 rounded-xl border border-white/10 bg-slate-800/40 p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Roster CSV upload</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Roster import</h2>
         <p className="mt-2 text-sm text-slate-400">
-          Batch roster verification is available on <strong className="text-slate-200">Business</strong> and{' '}
-          <strong className="text-slate-200">Enterprise</strong>.{' '}
+          Batch roster verification (CSV or Google Sheets) is available on{' '}
+          <strong className="text-slate-200">Business</strong> and <strong className="text-slate-200">Enterprise</strong>.{' '}
           <Link href="/pricing" className="font-medium text-[#93C5FD] hover:underline">
             Upgrade
           </Link>{' '}
-          to upload a CSV of licenses.
+          to import a roster.
         </p>
       </div>
     );
   }
 
   return (
-    <div id="roster-upload" className="scroll-mt-24 space-y-4 rounded-xl border border-white/10 bg-slate-800/40 p-6">
+      <div id="roster-upload" className="scroll-mt-24 space-y-4 rounded-xl border border-white/10 bg-slate-800/40 p-6">
       <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Roster CSV upload</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Roster import</h2>
         <p className="mt-2 text-sm text-slate-400">
-          Upload a CSV with columns <strong className="text-slate-200">State</strong> (or stateCode) and{' '}
-          <strong className="text-slate-200">License</strong> (or licenseNumber). Optional:{' '}
-          <strong className="text-slate-200">Name</strong> (guard name). First row must be headers. Max{' '}
-          {maxRows.toLocaleString()} rows per file (your plan). Each successful verification counts toward your
-          monthly search allowance; cached repeats use fewer counts.
+          Use the <strong className="text-slate-200">same columns as CSV</strong>:{' '}
+          <strong className="text-slate-200">State</strong> (or stateCode), <strong className="text-slate-200">License</strong>{' '}
+          (or licenseNumber), optional <strong className="text-slate-200">Name</strong>. First row must be headers. Max{' '}
+          {maxRows.toLocaleString()} rows (your plan). Supported states in batch include{' '}
+          <strong className="text-slate-200">CA, FL, TX, NV</strong>, and others listed in your plan. Each verification
+          counts toward your monthly allowance; cached repeats use fewer counts.
         </p>
         <p className="mt-2 text-xs text-slate-500">
           Example headers: <code className="text-slate-400">stateCode,licenseNumber,guardName</code>
@@ -184,17 +237,55 @@ export function RosterUploadPanel({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">
-          Choose CSV
+      <div className="space-y-2">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Option A — CSV file</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">
+            Choose CSV
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          {fileName && !sheetUrl.trim() ? <span className="text-sm text-slate-400">{fileName}</span> : null}
+        </div>
+      </div>
+
+      <div className="space-y-2 border-t border-white/10 pt-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Option B — Google Sheets</p>
+        <p className="text-xs text-slate-500">
+          In Google Sheets: <strong className="text-slate-400">Share</strong> → set <strong className="text-slate-400">General access</strong>{' '}
+          to <strong className="text-slate-400">Anyone with the link</strong> (Viewer), or use{' '}
+          <strong className="text-slate-400">File → Share → Publish to web</strong>. Then paste the browser URL (or the
+          spreadsheet ID). The app downloads the first tab as CSV — use <code className="text-slate-500">#gid=</code> in
+          the URL to pick another tab.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
-            type="file"
-            accept=".csv,text/csv"
-            className="sr-only"
-            onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+            type="url"
+            name="google-sheet-url"
+            autoComplete="off"
+            placeholder="https://docs.google.com/spreadsheets/d/…/edit"
+            value={sheetUrl}
+            onChange={(e) => {
+              setSheetUrl(e.target.value);
+              setSheetError(null);
+            }}
+            className="min-h-[44px] flex-1 rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-[#1A56DB]"
           />
-        </label>
-        {fileName ? <span className="text-sm text-slate-400">{fileName}</span> : null}
+          <button
+            type="button"
+            disabled={sheetLoading || !sheetUrl.trim()}
+            onClick={() => void loadFromGoogleSheet()}
+            className="rounded-lg border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition enabled:hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {sheetLoading ? 'Loading…' : 'Load from Sheets'}
+          </button>
+        </div>
+        {sheetError ? <p className="text-xs text-red-300">{sheetError}</p> : null}
+        {fileName && sheetUrl.trim() ? <span className="text-sm text-slate-400">{fileName}</span> : null}
       </div>
 
       {parseErrors.length > 0 ? (
