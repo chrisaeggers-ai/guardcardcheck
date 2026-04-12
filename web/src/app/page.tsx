@@ -54,7 +54,7 @@ export default function Home() {
             className="inline-flex items-center rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-sm"
             style={{ backgroundColor: NAVY }}
           >
-            10-State Guard License Verification
+            Multi-state guard card verification
           </p>
           <h1 className="mt-6 text-4xl font-bold tracking-tight text-[#0B1F3A] sm:text-5xl lg:text-[3.25rem] lg:leading-tight">
             Verify Guard Cards &amp; Firearm Permits Instantly
