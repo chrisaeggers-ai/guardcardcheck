@@ -13,7 +13,7 @@ const GREEN = '#059669';
 const RED = '#DC2626';
 const AMBER = '#D97706';
 
-const STATE_CODES = ['CA', 'FL', 'TX', 'NV'] as const;
+const STATE_CODES = ['CA', 'FL', 'TX', 'NV', 'AZ'] as const;
 type StateCode = (typeof STATE_CODES)[number];
 
 /** Official portals for name search when in-app automation is not available or secondary. */
@@ -26,6 +26,7 @@ const LICENSE_PLACEHOLDERS: Record<StateCode, string> = {
   FL: 'e.g. D 1234567 or G 3106934',
   TX: 'e.g. 230774 (TOPS person ID, digits only)',
   NV: 'e.g. 250* or combine with name/company fields',
+  AZ: 'e.g. 1781417',
 };
 
 type AccessLabel = 'Official API' | 'Portal scrape' | 'Bulk records';
@@ -92,6 +93,17 @@ const COVERAGE: CoverageState[] = [
       { label: 'PPO business', variant: 'company' },
     ],
   },
+  {
+    code: 'AZ',
+    name: 'Arizona',
+    agency: 'DPS Licensing Unit',
+    access: 'Portal scrape',
+    tags: [
+      { label: 'Unarmed guard', variant: 'unarmed' },
+      { label: 'Armed guard', variant: 'armed' },
+      { label: 'Agency', variant: 'company' },
+    ],
+  },
 ];
 
 const COVERAGE_COMING_SOON: ComingSoonCoverage[] = [
@@ -136,17 +148,6 @@ const COVERAGE_COMING_SOON: ComingSoonCoverage[] = [
     tags: [
       { label: 'Security guard', variant: 'unarmed' },
       { label: 'Armed endorsement', variant: 'armed' },
-      { label: 'Agency', variant: 'company' },
-    ],
-  },
-  {
-    code: 'AZ',
-    name: 'Arizona',
-    agency: 'DPS Licensing Unit',
-    access: 'Portal scrape',
-    tags: [
-      { label: 'Unarmed guard', variant: 'unarmed' },
-      { label: 'Armed guard', variant: 'armed' },
       { label: 'Agency', variant: 'company' },
     ],
   },
@@ -556,6 +557,17 @@ function verificationLoadingCopy(stateCode: StateCode, nameSearch: boolean) {
       subtitle: 'Querying the official public document search…',
     };
   }
+  if (stateCode === 'AZ') {
+    return nameSearch
+      ? {
+          title: 'Searching Arizona DPS',
+          subtitle: 'Searching the public security license registry…',
+        }
+      : {
+          title: 'Checking Arizona DPS',
+          subtitle: 'Querying the public security license registry…',
+        };
+  }
   return nameSearch
     ? {
         title: 'Searching California BSIS',
@@ -589,6 +601,12 @@ function VerifyPageContent() {
     const c = companyName.trim();
     return Boolean((f && l) || (l && c));
   }, [stateCode, firstName, lastName, companyName]);
+
+  /** AZ DPS public lookup uses a 7-digit numeric license number (e.g. 1781417). */
+  const azLicenseOk = useMemo(() => {
+    if (stateCode !== 'AZ') return true;
+    return /^\d{7}$/.test(licenseNumber.trim());
+  }, [stateCode, licenseNumber]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -912,7 +930,7 @@ function VerifyPageContent() {
           <p className="text-center text-sm font-medium uppercase tracking-[0.2em] text-slate-400">GuardCardCheck.com</p>
           <h1 className="mt-3 text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">Guard license verification</h1>
           <p className="mx-auto mt-3 max-w-2xl text-center text-slate-300">
-            Verify security guard credentials for California, Florida, Texas, and Nevada — by license number, by name (where supported), or upload a roster from your dashboard.
+            Verify security guard credentials for California, Florida, Texas, Nevada, and Arizona — by license number, by name (where supported), or upload a roster from your dashboard.
           </p>
 
           <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.06] p-1 shadow-2xl backdrop-blur">
@@ -1004,21 +1022,48 @@ function VerifyPageContent() {
                       .
                     </p>
                   ) : null}
+                  {stateCode === 'AZ' ? (
+                    <p className="text-xs text-slate-400">
+                      Enter the 7-digit license number (numbers only). Lookup may take a few seconds.
+                    </p>
+                  ) : null}
                   <div>
                     <label htmlFor="lic-num" className="block text-sm font-medium text-slate-300">
-                      {stateCode === 'TX' ? 'TOPS person ID' : stateCode === 'NV' ? 'License / work card / CFI #' : 'License number'}
+                      {stateCode === 'TX'
+                        ? 'TOPS person ID'
+                        : stateCode === 'NV'
+                          ? 'License / work card / CFI #'
+                          : stateCode === 'AZ'
+                            ? '7-digit license number'
+                            : 'License number'}
                     </label>
                     <input
                       id="lic-num"
                       value={licenseNumber}
-                      onChange={(e) => setLicenseNumber(e.target.value)}
+                      onChange={(e) => {
+                        if (stateCode === 'AZ') {
+                          setLicenseNumber(e.target.value.replace(/\D/g, '').slice(0, 7));
+                          return;
+                        }
+                        setLicenseNumber(e.target.value);
+                      }}
+                      inputMode={stateCode === 'AZ' ? 'numeric' : undefined}
+                      autoComplete={stateCode === 'AZ' ? 'off' : undefined}
+                      maxLength={stateCode === 'AZ' ? 7 : undefined}
                       placeholder={placeholder}
                       className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#1A56DB]"
                     />
                   </div>
                   <button
                     type="submit"
-                    disabled={loading || (stateCode === 'NV' ? !nvLicenseSearchOk : !licenseNumber.trim())}
+                    disabled={
+                      loading ||
+                      (stateCode === 'NV'
+                        ? !nvLicenseSearchOk
+                        : stateCode === 'AZ'
+                          ? !azLicenseOk
+                          : !licenseNumber.trim())
+                    }
                     className="w-full rounded-lg py-3 text-sm font-semibold text-white transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
                     style={{ backgroundColor: BLUE }}
                   >

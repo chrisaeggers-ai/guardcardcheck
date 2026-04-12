@@ -32,7 +32,7 @@ type VerifyResult = {
   recordUpdatedDate?: string | null;
 };
 
-type QuickState = 'CA' | 'FL' | 'TX' | 'NV';
+type QuickState = 'CA' | 'FL' | 'TX' | 'NV' | 'AZ';
 type QuickMode = 'license' | 'name';
 
 type FloridaApiRow = {
@@ -208,6 +208,8 @@ export function HomeQuickVerify() {
     if (mode === 'license') {
       if (stateCode === 'NV') {
         if (!licTrim) return;
+      } else if (stateCode === 'AZ') {
+        if (!/^\d{7}$/.test(licTrim)) return;
       } else if (!licTrim) return;
     }
     if (mode === 'name') {
@@ -427,7 +429,7 @@ export function HomeQuickVerify() {
         body: JSON.stringify({
           firstName: fnTrim,
           lastName: lnTrim,
-          stateCode: 'CA',
+          stateCode,
         }),
       });
       const data = await res.json();
@@ -460,7 +462,9 @@ export function HomeQuickVerify() {
         ? 'Florida license (e.g. D 1234567)'
         : stateCode === 'NV'
           ? 'License / work card #, or use fields below'
-          : 'California license number';
+          : stateCode === 'AZ'
+            ? 'e.g. 1781417'
+            : 'California license number';
 
   const loadingTitle =
     stateCode === 'FL'
@@ -473,9 +477,13 @@ export function HomeQuickVerify() {
           ? mode === 'name'
             ? 'Searching Nevada PILB'
             : 'Checking Nevada PILB'
-          : mode === 'name'
-            ? 'Searching California BSIS'
-            : 'Verifying license';
+          : stateCode === 'AZ'
+            ? mode === 'name'
+              ? 'Searching Arizona DPS'
+              : 'Checking Arizona DPS'
+            : mode === 'name'
+              ? 'Searching California BSIS'
+              : 'Verifying license';
   const loadingSubtitle =
     stateCode === 'FL'
       ? mode === 'name'
@@ -485,9 +493,11 @@ export function HomeQuickVerify() {
         ? 'Fetching your record from the state registry…'
         : stateCode === 'NV'
           ? 'Querying the state public document search…'
-          : mode === 'name'
-            ? 'The state registry can take 15–40 seconds.'
-            : 'Contacting BreEZe…';
+          : stateCode === 'AZ'
+            ? 'Querying the public security license registry…'
+            : mode === 'name'
+              ? 'The state registry can take 15–40 seconds.'
+              : 'Contacting BreEZe…';
 
   return (
     <div className="relative mx-auto mt-10 max-w-xl rounded-2xl border border-slate-200/80 bg-white p-2 shadow-xl shadow-slate-200/50">
@@ -520,6 +530,7 @@ export function HomeQuickVerify() {
           <option value="FL">Florida</option>
           <option value="TX">Texas</option>
           <option value="NV">Nevada</option>
+          <option value="AZ">Arizona</option>
         </select>
       </div>
 
@@ -567,17 +578,31 @@ export function HomeQuickVerify() {
                   ? 'TOPS person ID'
                   : stateCode === 'NV'
                     ? 'License / work card / CFI #'
-                    : 'License number'}
+                    : stateCode === 'AZ'
+                      ? '7-digit license number'
+                      : 'License number'}
               </label>
               <input
                 id="hero-license"
                 type="text"
                 value={license}
-                onChange={(e) => setLicense(e.target.value)}
+                onChange={(e) => {
+                  if (stateCode === 'AZ') {
+                    setLicense(e.target.value.replace(/\D/g, '').slice(0, 7));
+                    return;
+                  }
+                  setLicense(e.target.value);
+                }}
+                inputMode={stateCode === 'AZ' ? 'numeric' : undefined}
+                maxLength={stateCode === 'AZ' ? 7 : undefined}
+                autoComplete={stateCode === 'AZ' ? 'off' : undefined}
                 placeholder={licensePlaceholder}
                 className="min-h-[48px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-900 placeholder:text-slate-400 outline-none ring-[#1A56DB] focus:bg-white focus:ring-2"
               />
             </div>
+            {stateCode === 'AZ' && mode === 'license' ? (
+              <p className="text-xs text-slate-600">Arizona uses a 7-digit numeric license number (numbers only).</p>
+            ) : null}
             {stateCode === 'NV' ? (
               <p className="text-xs text-slate-600">
                 Name or company search: switch to <strong className="text-slate-800">By name</strong>.
@@ -690,7 +715,8 @@ export function HomeQuickVerify() {
             type="submit"
             disabled={
               loading ||
-              (mode === 'license' && !license.trim()) ||
+              (mode === 'license' &&
+                (stateCode === 'AZ' ? !/^\d{7}$/.test(license.trim()) : !license.trim())) ||
               (mode === 'name' &&
                 (stateCode === 'NV'
                   ? !((firstName.trim() && lastName.trim()) || (lastName.trim() && companyName.trim()))
@@ -706,9 +732,13 @@ export function HomeQuickVerify() {
                   : 'Checking FDACS…'
                 : stateCode === 'TX'
                   ? 'Loading TOPS…'
-                  : mode === 'name'
-                    ? 'Searching…'
-                    : 'Verifying…'
+                  : stateCode === 'AZ'
+                    ? mode === 'name'
+                      ? 'Searching Arizona…'
+                      : 'Checking Arizona…'
+                    : mode === 'name'
+                      ? 'Searching…'
+                      : 'Verifying…'
               : mode === 'name'
                 ? 'Search'
                 : 'Verify now'}
@@ -716,8 +746,8 @@ export function HomeQuickVerify() {
         ) : null}
       </form>
 
-      <p className="border-t border-slate-100 px-4 py-3 text-left text-xs text-slate-500">
-        Quick check for California, Florida, and Texas. Sign in for free (1 verification per day) or upgrade for unlimited. Texas name search opens the official TOPS site; use TOPS person ID with By license to verify here.
+        <p className="border-t border-slate-100 px-4 py-3 text-left text-xs text-slate-500">
+        Quick check for California, Florida, Texas, Nevada, and Arizona. Sign in for free (1 verification per day) or upgrade for unlimited. Texas name search opens the official TOPS site; use TOPS person ID with By license to verify here.
       </p>
 
       {error && (

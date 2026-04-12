@@ -79,6 +79,28 @@ function queryLimit(): number {
   return DEFAULT_QUERY_LIMIT;
 }
 
+const PILB_500_RETRY_DELAYS_MS = [1000, 2500];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * PILB sometimes returns HTTP 500 with a .NET body like "Could not establish trust relationship
+ * for the SSL/TLS secure channel" — that is their server failing an *outbound* TLS hop, not the client.
+ */
+function nevadaPilbFailureMessage(status: number, responseText: string): string {
+  const raw = responseText.slice(0, 400);
+  if (/trust relationship|SSL\/TLS|secure channel|Could not establish trust/i.test(raw)) {
+    return (
+      "Nevada PILB's servers returned an internal SSL error (their system could not complete a trusted HTTPS connection on their side). " +
+      'This is not caused by GuardCardCheck. Try again in a few minutes. If it continues, search on the official site: ' +
+      'https://pilbonbaseweb.nv.gov/publicAccess/'
+    );
+  }
+  return `Nevada PILB returned ${status}. ${raw.slice(0, 200)}`;
+}
+
 /** License / alphanumeric field: append * if user omitted it (prefix search). */
 export function nevadaLicenseWildcard(raw: string): string | null {
   const t = raw.trim();
@@ -345,22 +367,41 @@ export async function lookupNevadaPilb(params: NevadaSearchParams): Promise<Neva
   const url = `${apiBase()}/CustomQuery/KeywordSearch`;
 
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'User-Agent': 'GuardCardCheck/1.0 (license verification; +https://guardcardcheck.com)',
-      },
-      body: JSON.stringify(body),
-    });
+    let res: Response | null = null;
+    let lastErrText = '';
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'User-Agent': 'GuardCardCheck/1.0 (license verification; +https://guardcardcheck.com)',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) break;
+
+      lastErrText = await res.text().catch(() => '');
+      const retryable = res.status >= 500 && attempt < 2;
+      if (retryable) {
+        await sleep(PILB_500_RETRY_DELAYS_MS[attempt] ?? 2500);
+        continue;
+      }
+
       return {
         ok: false,
         error: res.status >= 500 ? 'SITE_ERROR' : 'LOAD_FAILED',
-        message: `Nevada PILB returned ${res.status}. ${text.slice(0, 200)}`,
+        message: nevadaPilbFailureMessage(res.status, lastErrText),
+      };
+    }
+
+    if (!res?.ok) {
+      return {
+        ok: false,
+        error: 'SITE_ERROR',
+        message: nevadaPilbFailureMessage(res?.status ?? 500, lastErrText),
       };
     }
 

@@ -444,8 +444,9 @@ const STATES = {
     },
     access: {
       type: ACCESS_TYPE.PORTAL_SCRAPE,
-      portalUrl: 'https://webapps.azdps.gov/public_inq/sgrd/ShowLicenseStatus.action',
-      notes: 'AZ DPS has a dedicated public inquiry application for security guard license status. Returns structured status data including expiration dates.',
+      portalUrl: 'https://psp.azdps.gov/securityLicense/securityStatus',
+      notes:
+        'Verification uses the legacy public inquiry AJAX (same license data as the AZDPS Public Services Portal).',
     },
     licenses: {
       UNARMED_GUARD: {
