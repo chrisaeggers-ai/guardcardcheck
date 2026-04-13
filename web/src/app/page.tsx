@@ -6,7 +6,7 @@ import { HomeQuickVerify } from '@/app/home-quick-verify';
 export const metadata: Metadata = {
   title: 'GuardCardCheck — Guard license verification',
   description:
-    'Verify guard cards and firearm permits in real time for California, Florida, Texas, Nevada, and Arizona. BSIS, FDACS, and DPS checks, roster uploads, and compliance alerts for PPOs.',
+    'Verify guard cards and firearm permits in real time for California, Florida, Texas, Nevada, Arizona, and Oregon. BSIS, FDACS, and DPS checks, roster uploads, and compliance alerts for PPOs.',
 };
 
 const NAVY = '#0B1F3A';

@@ -346,9 +346,11 @@ const STATES = {
     },
     access: {
       type: ACCESS_TYPE.PORTAL_SCRAPE,
-      portalUrl: 'https://www.oregon.gov/dpsst/ps/pages/iris.aspx',
-      systemName: 'IRIS (Internet Records Information System)',
-      notes: 'IRIS is a dedicated public records system for OR DPSST. Well-structured HTML output.',
+      portalUrl:
+        'https://www.bpl-orsnapshot.net/IRIS_PublicInquiry/PrivateSecurity/EmployeeSearch.aspx',
+      systemName: 'PS IRIS — Employee Search',
+      notes:
+        'Name search uses Last, First in the state field; PS ID search uses DPSST PS Identification Number.',
     },
     licenses: {
       SECURITY_CERT: {
@@ -379,7 +381,7 @@ const STATES = {
     searchFields: ['licenseNumber', 'firstName', 'lastName'],
     licenseFormat: /^\d{5,8}$/,
     notes: 'Solid Pacific Northwest market. DPSST IRIS is purpose-built for public verification.',
-    launched: false,
+    launched: true,
   },
 
   WA: {

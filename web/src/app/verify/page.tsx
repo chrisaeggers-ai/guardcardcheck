@@ -13,13 +13,15 @@ const GREEN = '#059669';
 const RED = '#DC2626';
 const AMBER = '#D97706';
 
-const STATE_CODES = ['CA', 'FL', 'TX', 'NV', 'AZ'] as const;
+const STATE_CODES = ['CA', 'FL', 'TX', 'NV', 'AZ', 'OR'] as const;
 type StateCode = (typeof STATE_CODES)[number];
 
 /** Official portals for name search when in-app automation is not available or secondary. */
 const FL_FDACS_INDIVIDUAL_URL = 'https://licensing.fdacs.gov/access/individual.aspx';
 const TX_TOPS_SEARCH_URL = 'https://tops.portal.texas.gov/psp-self-service/search/index';
 const NV_PILB_PUBLIC_URL = 'https://pilbonbaseweb.nv.gov/publicAccess/';
+const OR_IRIS_EMPLOYEE_SEARCH_URL =
+  'https://www.bpl-orsnapshot.net/IRIS_PublicInquiry/PrivateSecurity/EmployeeSearch.aspx';
 
 const LICENSE_PLACEHOLDERS: Record<StateCode, string> = {
   CA: 'e.g. 1441140 or G1234567',
@@ -27,6 +29,7 @@ const LICENSE_PLACEHOLDERS: Record<StateCode, string> = {
   TX: 'e.g. 230774 (TOPS person ID, digits only)',
   NV: 'e.g. 250* or combine with name/company fields',
   AZ: 'e.g. 1781417',
+  OR: 'e.g. 040053',
 };
 
 type AccessLabel = 'Official API' | 'Portal scrape' | 'Bulk records';
@@ -104,6 +107,17 @@ const COVERAGE: CoverageState[] = [
       { label: 'Agency', variant: 'company' },
     ],
   },
+  {
+    code: 'OR',
+    name: 'Oregon',
+    agency: 'DPSST — Private Security',
+    access: 'Portal scrape',
+    tags: [
+      { label: 'SEC', variant: 'unarmed' },
+      { label: 'Armed SEC', variant: 'armed' },
+      { label: 'Company reg', variant: 'company' },
+    ],
+  },
 ];
 
 const COVERAGE_COMING_SOON: ComingSoonCoverage[] = [
@@ -127,17 +141,6 @@ const COVERAGE_COMING_SOON: ComingSoonCoverage[] = [
       { label: 'Unarmed', variant: 'unarmed' },
       { label: 'Armed', variant: 'armed' },
       { label: 'Business', variant: 'company' },
-    ],
-  },
-  {
-    code: 'OR',
-    name: 'Oregon',
-    agency: 'DPSST — Private Security Section',
-    access: 'Portal scrape',
-    tags: [
-      { label: 'SEC', variant: 'unarmed' },
-      { label: 'Armed SEC', variant: 'armed' },
-      { label: 'Company reg', variant: 'company' },
     ],
   },
   {
@@ -568,6 +571,17 @@ function verificationLoadingCopy(stateCode: StateCode, nameSearch: boolean) {
           subtitle: 'Querying the public security license registry…',
         };
   }
+  if (stateCode === 'OR') {
+    return nameSearch
+      ? {
+          title: 'Searching Oregon DPSST',
+          subtitle: 'PS IRIS expects Last, First — we submit your name in that order automatically.',
+        }
+      : {
+          title: 'Checking Oregon DPSST',
+          subtitle: 'Looking up your DPSST PS Identification Number in PS IRIS…',
+        };
+  }
   return nameSearch
     ? {
         title: 'Searching California BSIS',
@@ -606,6 +620,13 @@ function VerifyPageContent() {
   const azLicenseOk = useMemo(() => {
     if (stateCode !== 'AZ') return true;
     return /^\d{7}$/.test(licenseNumber.trim());
+  }, [stateCode, licenseNumber]);
+
+  /** DPSST PS Identification Number — typically 6 digits (e.g. 040053); we allow 5–8 digits. */
+  const orLicenseOk = useMemo(() => {
+    if (stateCode !== 'OR') return true;
+    const d = licenseNumber.replace(/\D/g, '');
+    return d.length >= 5 && d.length <= 8;
   }, [stateCode, licenseNumber]);
 
   const [loading, setLoading] = useState(false);
@@ -930,7 +951,7 @@ function VerifyPageContent() {
           <p className="text-center text-sm font-medium uppercase tracking-[0.2em] text-slate-400">GuardCardCheck.com</p>
           <h1 className="mt-3 text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">Guard license verification</h1>
           <p className="mx-auto mt-3 max-w-2xl text-center text-slate-300">
-            Verify security guard credentials for California, Florida, Texas, Nevada, and Arizona — by license number, by name (where supported), or upload a roster from your dashboard.
+            Verify security guard credentials for California, Florida, Texas, Nevada, Arizona, and Oregon — by license number, by name (where supported), or upload a roster from your dashboard.
           </p>
 
           <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.06] p-1 shadow-2xl backdrop-blur">
@@ -1027,6 +1048,20 @@ function VerifyPageContent() {
                       Enter the 7-digit license number (numbers only). Lookup may take a few seconds.
                     </p>
                   ) : null}
+                  {stateCode === 'OR' ? (
+                    <p className="text-xs text-slate-400">
+                      DPSST PS Identification Number (5–8 digits, e.g. 040053). Same lookup as{' '}
+                      <a
+                        href={OR_IRIS_EMPLOYEE_SEARCH_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#93C5FD] underline underline-offset-2 hover:text-white"
+                      >
+                        Oregon PS IRIS
+                      </a>
+                      .
+                    </p>
+                  ) : null}
                   <div>
                     <label htmlFor="lic-num" className="block text-sm font-medium text-slate-300">
                       {stateCode === 'TX'
@@ -1035,7 +1070,9 @@ function VerifyPageContent() {
                           ? 'License / work card / CFI #'
                           : stateCode === 'AZ'
                             ? '7-digit license number'
-                            : 'License number'}
+                            : stateCode === 'OR'
+                              ? 'DPSST PS Identification #'
+                              : 'License number'}
                     </label>
                     <input
                       id="lic-num"
@@ -1045,11 +1082,15 @@ function VerifyPageContent() {
                           setLicenseNumber(e.target.value.replace(/\D/g, '').slice(0, 7));
                           return;
                         }
+                        if (stateCode === 'OR') {
+                          setLicenseNumber(e.target.value.replace(/\D/g, '').slice(0, 8));
+                          return;
+                        }
                         setLicenseNumber(e.target.value);
                       }}
-                      inputMode={stateCode === 'AZ' ? 'numeric' : undefined}
-                      autoComplete={stateCode === 'AZ' ? 'off' : undefined}
-                      maxLength={stateCode === 'AZ' ? 7 : undefined}
+                      inputMode={stateCode === 'AZ' || stateCode === 'OR' ? 'numeric' : undefined}
+                      autoComplete={stateCode === 'AZ' || stateCode === 'OR' ? 'off' : undefined}
+                      maxLength={stateCode === 'AZ' ? 7 : stateCode === 'OR' ? 8 : undefined}
                       placeholder={placeholder}
                       className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-[#1A56DB]"
                     />
@@ -1062,7 +1103,9 @@ function VerifyPageContent() {
                         ? !nvLicenseSearchOk
                         : stateCode === 'AZ'
                           ? !azLicenseOk
-                          : !licenseNumber.trim())
+                          : stateCode === 'OR'
+                            ? !orLicenseOk
+                            : !licenseNumber.trim())
                     }
                     className="w-full rounded-lg py-3 text-sm font-semibold text-white transition enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
                     style={{ backgroundColor: BLUE }}
@@ -1169,6 +1212,22 @@ function VerifyPageContent() {
                           PILB
                         </a>{' '}
                         wildcard rules.
+                      </p>
+                    ) : null}
+                    {stateCode === 'OR' ? (
+                      <p className="text-xs text-slate-400">
+                        Oregon lists employees as <strong className="text-slate-300">Last, First</strong> (e.g.{' '}
+                        <span className="text-slate-300">David, James</span>). Enter first and last here — we submit{' '}
+                        <strong className="text-slate-300">Last, First</strong> to{' '}
+                        <a
+                          href={OR_IRIS_EMPLOYEE_SEARCH_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#93C5FD] underline underline-offset-2 hover:text-white"
+                        >
+                          PS IRIS
+                        </a>{' '}
+                        automatically.
                       </p>
                     ) : null}
                     <div className="grid gap-4 sm:grid-cols-2">

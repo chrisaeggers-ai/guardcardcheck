@@ -32,7 +32,7 @@ type VerifyResult = {
   recordUpdatedDate?: string | null;
 };
 
-type QuickState = 'CA' | 'FL' | 'TX' | 'NV' | 'AZ';
+type QuickState = 'CA' | 'FL' | 'TX' | 'NV' | 'AZ' | 'OR';
 type QuickMode = 'license' | 'name';
 
 type FloridaApiRow = {
@@ -210,6 +210,9 @@ export function HomeQuickVerify() {
         if (!licTrim) return;
       } else if (stateCode === 'AZ') {
         if (!/^\d{7}$/.test(licTrim)) return;
+      } else if (stateCode === 'OR') {
+        const d = licTrim.replace(/\D/g, '');
+        if (d.length < 5 || d.length > 8) return;
       } else if (!licTrim) return;
     }
     if (mode === 'name') {
@@ -464,7 +467,9 @@ export function HomeQuickVerify() {
           ? 'License / work card #, or use fields below'
           : stateCode === 'AZ'
             ? 'e.g. 1781417'
-            : 'California license number';
+            : stateCode === 'OR'
+              ? 'e.g. 040053'
+              : 'California license number';
 
   const loadingTitle =
     stateCode === 'FL'
@@ -481,9 +486,13 @@ export function HomeQuickVerify() {
             ? mode === 'name'
               ? 'Searching Arizona DPS'
               : 'Checking Arizona DPS'
-            : mode === 'name'
-              ? 'Searching California BSIS'
-              : 'Verifying license';
+            : stateCode === 'OR'
+              ? mode === 'name'
+                ? 'Searching Oregon DPSST'
+                : 'Checking Oregon DPSST'
+              : mode === 'name'
+                ? 'Searching California BSIS'
+                : 'Verifying license';
   const loadingSubtitle =
     stateCode === 'FL'
       ? mode === 'name'
@@ -495,9 +504,11 @@ export function HomeQuickVerify() {
           ? 'Querying the state public document search…'
           : stateCode === 'AZ'
             ? 'Querying the public security license registry…'
-            : mode === 'name'
-              ? 'The state registry can take 15–40 seconds.'
-              : 'Contacting BreEZe…';
+            : stateCode === 'OR'
+              ? 'Querying Oregon PS IRIS…'
+              : mode === 'name'
+                ? 'The state registry can take 15–40 seconds.'
+                : 'Contacting BreEZe…';
 
   return (
     <div className="relative mx-auto mt-10 max-w-xl rounded-2xl border border-slate-200/80 bg-white p-2 shadow-xl shadow-slate-200/50">
@@ -531,6 +542,7 @@ export function HomeQuickVerify() {
           <option value="TX">Texas</option>
           <option value="NV">Nevada</option>
           <option value="AZ">Arizona</option>
+          <option value="OR">Oregon</option>
         </select>
       </div>
 
@@ -580,7 +592,9 @@ export function HomeQuickVerify() {
                     ? 'License / work card / CFI #'
                     : stateCode === 'AZ'
                       ? '7-digit license number'
-                      : 'License number'}
+                      : stateCode === 'OR'
+                        ? 'DPSST PS Identification #'
+                        : 'License number'}
               </label>
               <input
                 id="hero-license"
@@ -591,17 +605,27 @@ export function HomeQuickVerify() {
                     setLicense(e.target.value.replace(/\D/g, '').slice(0, 7));
                     return;
                   }
+                  if (stateCode === 'OR') {
+                    setLicense(e.target.value.replace(/\D/g, '').slice(0, 8));
+                    return;
+                  }
                   setLicense(e.target.value);
                 }}
-                inputMode={stateCode === 'AZ' ? 'numeric' : undefined}
-                maxLength={stateCode === 'AZ' ? 7 : undefined}
-                autoComplete={stateCode === 'AZ' ? 'off' : undefined}
+                inputMode={stateCode === 'AZ' || stateCode === 'OR' ? 'numeric' : undefined}
+                maxLength={stateCode === 'AZ' ? 7 : stateCode === 'OR' ? 8 : undefined}
+                autoComplete={stateCode === 'AZ' || stateCode === 'OR' ? 'off' : undefined}
                 placeholder={licensePlaceholder}
                 className="min-h-[48px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-900 placeholder:text-slate-400 outline-none ring-[#1A56DB] focus:bg-white focus:ring-2"
               />
             </div>
             {stateCode === 'AZ' && mode === 'license' ? (
               <p className="text-xs text-slate-600">Arizona uses a 7-digit numeric license number (numbers only).</p>
+            ) : null}
+            {stateCode === 'OR' && mode === 'license' ? (
+              <p className="text-xs text-slate-600">
+                Oregon: enter your DPSST PS ID (5–8 digits, e.g. 040053). Name search uses Last, First on the state site — use{' '}
+                <strong className="text-slate-800">By name</strong> and we format it for you.
+              </p>
             ) : null}
             {stateCode === 'NV' ? (
               <p className="text-xs text-slate-600">
@@ -662,6 +686,11 @@ export function HomeQuickVerify() {
                 .
               </p>
             ) : null}
+            {stateCode === 'OR' ? (
+              <p className="text-xs text-slate-600">
+                PS IRIS expects <strong className="text-slate-800">Last, First</strong> (e.g. David, James). We send your name in that order automatically.
+              </p>
+            ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label htmlFor="hero-fn" className="mb-1 block text-xs font-medium text-slate-600">
@@ -716,7 +745,11 @@ export function HomeQuickVerify() {
             disabled={
               loading ||
               (mode === 'license' &&
-                (stateCode === 'AZ' ? !/^\d{7}$/.test(license.trim()) : !license.trim())) ||
+                (stateCode === 'AZ'
+                  ? !/^\d{7}$/.test(license.trim())
+                  : stateCode === 'OR'
+                    ? !/^\d{5,8}$/.test(license.replace(/\D/g, ''))
+                    : !license.trim())) ||
               (mode === 'name' &&
                 (stateCode === 'NV'
                   ? !((firstName.trim() && lastName.trim()) || (lastName.trim() && companyName.trim()))
@@ -736,9 +769,13 @@ export function HomeQuickVerify() {
                     ? mode === 'name'
                       ? 'Searching Arizona…'
                       : 'Checking Arizona…'
-                    : mode === 'name'
-                      ? 'Searching…'
-                      : 'Verifying…'
+                    : stateCode === 'OR'
+                      ? mode === 'name'
+                        ? 'Searching Oregon…'
+                        : 'Checking Oregon…'
+                      : mode === 'name'
+                        ? 'Searching…'
+                        : 'Verifying…'
               : mode === 'name'
                 ? 'Search'
                 : 'Verify now'}
@@ -747,7 +784,7 @@ export function HomeQuickVerify() {
       </form>
 
         <p className="border-t border-slate-100 px-4 py-3 text-left text-xs text-slate-500">
-        Quick check for California, Florida, Texas, Nevada, and Arizona. Sign in for free (1 verification per day) or upgrade for unlimited. Texas name search opens the official TOPS site; use TOPS person ID with By license to verify here.
+        Quick check for California, Florida, Texas, Nevada, Arizona, and Oregon. Sign in for free (1 verification per day) or upgrade for unlimited. Texas name search opens the official TOPS site; use TOPS person ID with By license to verify here.
       </p>
 
       {error && (
