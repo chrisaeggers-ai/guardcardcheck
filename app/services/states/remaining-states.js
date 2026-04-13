@@ -4,8 +4,13 @@
  * License types: PERC (all guards), FCC (armed), PSC Agency (company)
  */
 
+const axios = require('axios');
+const https = require('https');
 const BaseStateAdapter = require('../adapters/BaseStateAdapter');
 const { STATES } = require('../../config/states');
+
+/** AZ DPS legacy host serves an incomplete chain; Node TLS fails unless we opt in (browser/curl are lenient). */
+const AZ_DPS_HTTPS_AGENT = new https.Agent({ rejectUnauthorized: false });
 
 class IllinoisAdapter extends BaseStateAdapter {
   constructor() {
@@ -251,25 +256,94 @@ class NevadaAdapter extends BaseStateAdapter {
 }
 
 /**
- * Oregon State Adapter — DPSST IRIS System
- * Portal: https://www.oregon.gov/dpsst/ps/pages/iris.aspx
- * License types: Security Professional Certification, Armed Certification
+ * Oregon State Adapter — DPSST PS IRIS (Blue Peak snapshot)
+ * Employee search: https://www.bpl-orsnapshot.net/IRIS_PublicInquiry/PrivateSecurity/EmployeeSearch.aspx
+ *
+ * Name search expects "Last, First" in the single text field (site radio: Employee Name).
+ * PS Identification uses the same field with radio DPSST PS Identification Number.
  */
 class OregonAdapter extends BaseStateAdapter {
   constructor() {
     super(STATES.OR);
-    // DPSST IRIS has an API-like endpoint
-    this.irisBase = 'https://iris.dpsst.state.or.us';
-    this.searchUrl = `${this.irisBase}/PublicSafety/certs/search`;
+    this.searchUrl =
+      'https://www.bpl-orsnapshot.net/IRIS_PublicInquiry/PrivateSecurity/EmployeeSearch.aspx';
+  }
+
+  /** @param {0|1} rdoSearchOption 0 = Last, First name  1 = PS ID */
+  async _postEmployeeSearch(rdoSearchOption, txtNameSearch) {
+    const cheerio = require('cheerio');
+    const get$ = await this.http.get(this.searchUrl, {
+      headers: { Referer: this.searchUrl },
+    });
+    const $page = cheerio.load(get$.data);
+    const body = new URLSearchParams({
+      __VIEWSTATE: $page('#__VIEWSTATE').val() || '',
+      __VIEWSTATEGENERATOR: $page('#__VIEWSTATEGENERATOR').val() || '',
+      __EVENTVALIDATION: $page('#__EVENTVALIDATION').val() || '',
+      rdoSearchOption: String(rdoSearchOption),
+      txtNameSearch: txtNameSearch,
+      cmdSearch: 'Find',
+    });
+    const post = await this.http.post(this.searchUrl, body.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Referer: this.searchUrl,
+      },
+    });
+    return cheerio.load(post.data);
+  }
+
+  _parseEmployeeGrid($) {
+    const results = [];
+    $('tr.row, tr.rowAlt').each((i, row) => {
+      const cells = $(row).find('td');
+      if (cells.length < 5) return;
+      const holderName = $(cells[0]).find('a').first().text().trim() || $(cells[0]).text().trim();
+      const psId = $(cells[1])
+        .text()
+        .trim()
+        .replace(/\s/g, '');
+      const agency =
+        $(cells[2]).find('a').first().text().trim() || $(cells[2]).text().trim();
+      const rank = $(cells[3]).text().trim();
+      const statusText = $(cells[4]).text().trim().toUpperCase();
+      let status = 'UNKNOWN';
+      if (statusText.includes('ACTIVE')) status = 'ACTIVE';
+      else if (statusText.includes('INACTIVE')) status = 'EXPIRED';
+      const rankUp = rank.toUpperCase();
+      const isArmed =
+        rankUp.includes('ARMED') || (rankUp.includes('ARM') && !rankUp.includes('UNARM'));
+      results.push(
+        this.normalize({
+          licenseNumber: psId,
+          holderName,
+          licenseType: rank ? `Private Security — ${rank}` : 'Private Security Professional',
+          licenseTypeCode: isArmed ? 'ASEC' : 'SEC',
+          companyName: agency || null,
+          status,
+          isArmed,
+          credentialSpecification: agency ? `${holderName} (${agency})` : holderName,
+        })
+      );
+    });
+    return results;
   }
 
   async verify(licenseNumber) {
+    const digits = String(licenseNumber || '')
+      .replace(/\D/g, '');
+    if (!digits || digits.length < 4) {
+      return this.normalize({ status: 'NOT_FOUND', licenseNumber: licenseNumber?.trim() || null });
+    }
+    const padded = digits.length <= 6 ? digits.padStart(6, '0') : digits;
     try {
-      const response = await this.http.get(this.searchUrl, {
-        params: { CertificateNumber: licenseNumber.trim(), CertType: 'SG' },
-      });
-      const $ = require('cheerio').load(response.data);
-      return this._parseResult($, licenseNumber.trim());
+      const $ = await this._postEmployeeSearch(1, padded);
+      const rows = this._parseEmployeeGrid($);
+      if (!rows.length) {
+        return this.normalize({ status: 'NOT_FOUND', licenseNumber: padded });
+      }
+      const active = rows.find((r) => r.status === 'ACTIVE');
+      return active || rows[0];
     } catch (e) {
       console.error('[OR] verify error:', e.message);
       throw e;
@@ -277,48 +351,14 @@ class OregonAdapter extends BaseStateAdapter {
   }
 
   async search(firstName, lastName) {
-    const response = await this.http.get(this.searchUrl, {
-      params: { FirstName: firstName.trim(), LastName: lastName.trim(), CertType: 'SG' },
-    });
-    const $ = require('cheerio').load(response.data);
-    return this._parseMultiResult($);
-  }
-
-  _parseResult($, queryLicense) {
-    const rows = $('tr.result-row, table.certResults tr').eq(1);
-    const cells = rows.find('td');
-    if (!cells.length) return this.normalize({ status: 'NOT_FOUND', licenseNumber: queryLicense });
-
-    const isArmed = $(cells[2]).text().toUpperCase().includes('ARMED');
-    return this.normalize({
-      holderName: $(cells[0]).text().trim(),
-      licenseNumber: $(cells[1]).text().trim() || queryLicense,
-      licenseType: $(cells[2]).text().trim(),
-      licenseTypeCode: isArmed ? 'ASEC' : 'SEC',
-      status: $(cells[3]).text().trim(),
-      expirationDate: this._parseDate($(cells[4]).text().trim()),
-      isArmed,
-    });
-  }
-
-  _parseMultiResult($) {
-    const results = [];
-    $('tr.result-row, table.certResults tr').each((i, row) => {
-      if (i === 0) return;
-      const cells = $(row).find('td');
-      if (cells.length < 4) return;
-      const isArmed = $(cells[2]).text().toUpperCase().includes('ARMED');
-      results.push(this.normalize({
-        holderName: $(cells[0]).text().trim(),
-        licenseNumber: $(cells[1]).text().trim(),
-        licenseType: $(cells[2]).text().trim(),
-        licenseTypeCode: isArmed ? 'ASEC' : 'SEC',
-        status: $(cells[3]).text().trim(),
-        expirationDate: this._parseDate($(cells[4]).text().trim()),
-        isArmed,
-      }));
-    });
-    return results;
+    const lastFirst = `${lastName.trim()}, ${firstName.trim()}`;
+    try {
+      const $ = await this._postEmployeeSearch(0, lastFirst);
+      return this._parseEmployeeGrid($);
+    } catch (e) {
+      console.error('[OR] search error:', e.message);
+      throw e;
+    }
   }
 }
 
@@ -395,28 +435,52 @@ class WashingtonAdapter extends BaseStateAdapter {
 /**
  * Arizona State Adapter — AZ DPS Public Inquiry
  * Portal: https://webapps.azdps.gov/public_inq/sgrd/ShowLicenseStatus.action
+ * AJAX endpoint: LicenseStatusAJAX.action
  * License types: Unarmed Guard, Armed Guard, Security Guard Agency License
+ *
+ * HTML table columns: License Number | Employee Type | Status | Name | Expire Date
  */
 class ArizonaAdapter extends BaseStateAdapter {
   constructor() {
     super(STATES.AZ);
-    this.searchUrl = 'https://webapps.azdps.gov/public_inq/sgrd/ShowLicenseStatus.action';
+    this.searchUrl = 'https://webapps.azdps.gov/public_inq/sgrd/LicenseStatusAJAX.action';
+    this.http = axios.create({
+      timeout: 20000,
+      httpsAgent: AZ_DPS_HTTPS_AGENT,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        Connection: 'keep-alive',
+      },
+    });
   }
 
   async verify(licenseNumber) {
     const cleanLicense = licenseNumber.trim();
     try {
       const response = await this.http.post(this.searchUrl, new URLSearchParams({
-        licenseNumber: cleanLicense,
-        submit: 'Search',
+        licenseNum: cleanLicense,
+        firstName: '',
+        lastName: '',
+        agency: '',
       }).toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Referer': this.searchUrl,
+          Referer: 'https://webapps.azdps.gov/public_inq/sgrd/ShowLicenseStatus.action',
         },
       });
       const $ = require('cheerio').load(response.data);
-      return this._parseResult($, cleanLicense);
+      const rows = this._parseTableRows($);
+      if (rows.length === 0) {
+        return this.normalize({ status: 'NOT_FOUND', licenseNumber: cleanLicense });
+      }
+      const match = rows.find(
+        (r) => String(r.licenseNumber || '').replace(/\D/g, '') === cleanLicense.replace(/\D/g, '')
+      );
+      return match || rows[0];
     } catch (e) {
       console.error('[AZ] verify error:', e.message);
       throw e;
@@ -427,52 +491,41 @@ class ArizonaAdapter extends BaseStateAdapter {
     const response = await this.http.post(this.searchUrl, new URLSearchParams({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      submit: 'Search',
+      licenseNum: '',
+      agency: '',
     }).toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Referer: 'https://webapps.azdps.gov/public_inq/sgrd/ShowLicenseStatus.action',
+      },
     });
     const $ = require('cheerio').load(response.data);
-    return this._parseMultiResult($);
+    return this._parseTableRows($);
   }
 
-  _parseResult($, queryLicense) {
-    // AZ DPS returns specific status codes: Issued, Expired, Incomplete
-    const statusText = $('.licenseStatus, #status, td.status').text().trim();
-    const licenseType = $('[class*="licType"], td.licType').text().trim();
-    const holderName = $('[class*="name"], td.name').text().trim();
-    const expDate = $('[class*="expDate"], td.expDate').text().trim();
-    const issuedDate = $('[class*="issDate"], td.issDate').text().trim();
-
-    if (!statusText && !holderName) {
-      return this.normalize({ status: 'NOT_FOUND', licenseNumber: queryLicense });
-    }
-
-    const isArmed = licenseType.toUpperCase().includes('ARMED');
-    return this.normalize({
-      licenseNumber: queryLicense,
-      licenseType: licenseType || (isArmed ? 'Armed Security Guard' : 'Unarmed Security Guard'),
-      licenseTypeCode: isArmed ? 'AG' : 'UAG',
-      holderName, status: statusText,
-      issueDate: this._parseDate(issuedDate),
-      expirationDate: this._parseDate(expDate),
-      isArmed,
-    });
-  }
-
-  _parseMultiResult($) {
+  _parseTableRows($) {
     const results = [];
-    $('tr.resultRow, table.results tr').each((i, row) => {
-      if (i === 0) return;
+    $('table tr').each((i, row) => {
       const cells = $(row).find('td');
-      if (cells.length < 3) return;
-      const licenseType = $(cells[2]).text().trim();
-      const isArmed = licenseType.toUpperCase().includes('ARMED');
+      if (cells.length < 5) return;
+      const licenseNumber = $(cells[0]).text().trim();
+      const employeeType = $(cells[1]).text().trim();
+      const statusText = $(cells[2]).text().trim();
+      const holderName = $(cells[3]).text().trim();
+      const expDate = $(cells[4]).text().trim();
+      const etUp = employeeType.toUpperCase();
+      const isArmed = etUp.includes('ARMED') && !etUp.includes('UNARMED');
+
+      let normalizedStatus = statusText.toUpperCase();
+      if (normalizedStatus === 'ISSUED') normalizedStatus = 'ACTIVE';
+
       results.push(this.normalize({
-        licenseNumber: $(cells[0]).text().trim(),
-        holderName: $(cells[1]).text().trim(),
-        licenseType, licenseTypeCode: isArmed ? 'AG' : 'UAG',
-        status: $(cells[3]).text().trim(),
-        expirationDate: this._parseDate($(cells[4]).text().trim()),
+        licenseNumber,
+        holderName,
+        licenseType: employeeType || (isArmed ? 'Armed Security Guard' : 'Unarmed Security Guard'),
+        licenseTypeCode: isArmed ? 'AG' : 'UAG',
+        status: normalizedStatus,
+        expirationDate: this._parseDate(expDate),
         isArmed,
       }));
     });
