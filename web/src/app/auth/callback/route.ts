@@ -11,8 +11,28 @@ function safeNextPath(next: string | null): string {
   return next;
 }
 
+function getBaseUrl(request: Request) {
+  const envUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL;
+
+  if (envUrl) return envUrl.replace(/\/$/, '');
+
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  return new URL(request.url).origin;
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const baseUrl = getBaseUrl(request);
   const code = url.searchParams.get('code');
   const next = safeNextPath(url.searchParams.get('next'));
   const err = url.searchParams.get('error');
@@ -21,7 +41,7 @@ export async function GET(request: Request) {
   if (err) {
     const msg = errDesc || err;
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(msg)}`, url.origin)
+      new URL(`/login?error=${encodeURIComponent(msg)}`, baseUrl)
     );
   }
 
@@ -29,17 +49,17 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(new URL(next, url.origin));
+      return NextResponse.redirect(new URL(next, baseUrl));
     }
     return NextResponse.redirect(
       new URL(
         `/login?error=${encodeURIComponent(error.message || 'Session could not be established.')}`,
-        url.origin
+        baseUrl
       )
     );
   }
 
   return NextResponse.redirect(
-    new URL('/login?error=' + encodeURIComponent('Missing confirmation code.'), url.origin)
+    new URL('/login?error=' + encodeURIComponent('Missing confirmation code.'), baseUrl)
   );
 }
