@@ -155,7 +155,12 @@ export default function PricingPage() {
     <main className="min-h-screen px-4 pb-20 pt-12 sm:px-6 lg:px-8" style={{ backgroundColor: NAVY }}>
       <div className="mx-auto max-w-6xl">
         <header className="mb-10 text-center">
-          <p className="text-sm font-medium uppercase tracking-wider text-slate-400">GuardCardCheck</p>
+          <Link
+            href="/"
+            className="inline-block text-sm font-medium uppercase tracking-wider text-slate-400 transition hover:text-white"
+          >
+            GuardCardCheck.com
+          </Link>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Simple pricing for license verification</h1>
           <p className="mx-auto mt-3 max-w-2xl text-slate-300">
             Choose a plan that fits your PPO or security team. Upgrade or downgrade anytime from your dashboard.
