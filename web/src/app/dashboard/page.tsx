@@ -7,6 +7,7 @@ import { LogoutButton } from './logout-button';
 import { BillingButton } from './billing-button';
 import { SearchHistoryPanel } from './search-history-panel';
 import { RosterUploadPanel } from './roster-upload-panel';
+import { ApiKeyPanel } from './api-key-panel';
 
 const { getPlan } = require('@/lib/config/plans') as {
   getPlan: (id: string) => {
@@ -183,6 +184,8 @@ export default async function DashboardPage() {
           monthlySearchLimit={searchLimit}
           searchesUsedThisMonth={searchesUsed}
         />
+
+        <ApiKeyPanel />
 
         <section className="rounded-xl border border-white/10 bg-slate-800/30 p-6 sm:p-8">
           <SearchHistoryPanel />

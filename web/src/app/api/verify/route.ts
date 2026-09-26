@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-helpers';
+import { getRequestUser } from '@/lib/auth-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { recordSearchHistory } from '@/lib/search-history';
 import { summarizeVerifyResult } from '@/lib/search-history-summaries';
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'stateCode must be a 2-letter state abbreviation' }, { status: 400 });
   }
 
-  const user = await getAuthUser();
+  const user = await getRequestUser(request);
   if (!user) {
     return NextResponse.json(
       { error: 'Sign in to run verifications.', code: 'UNAUTHORIZED' },
