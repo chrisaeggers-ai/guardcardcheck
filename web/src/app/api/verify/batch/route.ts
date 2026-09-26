@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-helpers';
+import { getRequestUser } from '@/lib/auth-helpers';
 import { assertMonthlyQuotaForRosterRows, recordSearchUsage } from '@/lib/usage-enforcement';
 
 export const runtime = 'nodejs';
@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
-  const user = await getAuthUser();
+  const user = await getRequestUser(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const plan = user.plan || 'free';

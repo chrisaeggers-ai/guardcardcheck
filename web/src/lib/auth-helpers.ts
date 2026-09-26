@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { userFromApiKey } from '@/lib/api-keys';
 
 export interface AppUser {
   id: string;
@@ -32,6 +33,17 @@ export async function getAuthUser(): Promise<AppUser | null> {
     stripe_customer_id: profile?.stripe_customer_id || null,
     ...profile,
   };
+}
+
+/**
+ * For the verification API only: an API key (Authorization: Bearer gcc_…) when one is
+ * sent, otherwise the signed-in browser session. A key that is sent but invalid never
+ * falls back to the session.
+ */
+export async function getRequestUser(request: Request): Promise<AppUser | null> {
+  const auth = request.headers.get('authorization');
+  if (auth) return userFromApiKey(auth);
+  return getAuthUser();
 }
 
 /**
